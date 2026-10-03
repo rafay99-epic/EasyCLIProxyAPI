@@ -6,22 +6,19 @@ import { createThemeController, type AppTheme, type ThemePreference } from './th
 
 export type { AppTheme, ThemePreference } from './themeController';
 
-const STORAGE_KEY = 'easy-cli-proxy-api.theme';
+// CPA Desk is dark only: every preference resolves to the true-black theme.
+const FORCED_THEME: AppTheme = 'dark';
 const WINDOW_BACKGROUND: Record<AppTheme, string> = {
-  light: '#f6f7f5',
-  dark: '#0b0d11',
+  light: '#000000',
+  dark: '#000000',
 };
 
 export function detectThemePreference(): ThemePreference {
-  try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
-  } catch {
-  }
-  return 'system';
+  return FORCED_THEME;
 }
 
-function applyTheme(theme: AppTheme): void {
+function applyTheme(_requested: AppTheme): void {
+  const theme = FORCED_THEME;
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
   document.documentElement.style.backgroundColor = WINDOW_BACKGROUND[theme];
@@ -37,13 +34,10 @@ export function initializeTheme() {
   const media = window.matchMedia?.('(prefers-color-scheme: dark)');
   controller = createThemeController({
     readPreference: detectThemePreference,
-    savePreference(preference) {
-      try {
-        window.localStorage.setItem(STORAGE_KEY, preference);
-      } catch {
-      }
+    savePreference() {
+      // Dark only; nothing to persist.
     },
-    readMediaTheme: () => media?.matches ? 'dark' : 'light',
+    readMediaTheme: () => FORCED_THEME,
     listenMedia(listener) {
       if (!media) return () => {};
       if (typeof media.addEventListener === 'function') {
@@ -70,13 +64,13 @@ export function initializeTheme() {
       const { os } = await invoke<{ os: string }>('detect_core_platform');
       return {
         explicitSystemAppearance: os === 'linux',
-        setTheme: (theme) => currentWindow.setTheme(theme),
+        setTheme: () => currentWindow.setTheme(FORCED_THEME),
         readTheme: () => os === 'linux'
           ? invoke<AppTheme | null>('get_linux_system_theme')
           : currentWindow.theme(),
         listen: (listener) => currentWindow.onThemeChanged(({ payload }) => listener(payload)),
-        async setBackground(theme) {
-          const background = WINDOW_BACKGROUND[theme];
+        async setBackground() {
+          const background = WINDOW_BACKGROUND[FORCED_THEME];
           await Promise.allSettled([
             currentWindow.setBackgroundColor(background),
             currentWebview.setBackgroundColor(background),

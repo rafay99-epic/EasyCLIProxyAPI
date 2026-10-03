@@ -6,6 +6,7 @@ import App from './App';
 import { I18nProvider } from './i18n';
 import { initializeTheme } from './theme';
 import './styles/index.css';
+import './styles/app.css';
 
 async function bootstrap() {
   if (import.meta.env.DEV && !isTauri()) {

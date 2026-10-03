@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CPA Desk</title>
+<style>
+:root {
+  --bg: #000;
+  --raise: #0a0a0a;
+  --hover: rgba(255,255,255,.04);
+  --active: rgba(255,255,255,.07);
+  --line: rgba(255,255,255,.08);
+  --line-2: rgba(255,255,255,.13);
+  --text: #f5f5f5;
+  --text-2: #a3a3a3;
+  --text-3: #6e6e6e;
+  --side-text: #8c8c8c;
+  --ok: #3ecf8e; --warn: #f5a524; --bad: #f04d4d; --info: #7cb7ff;
+
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
+  --mono: "SF Mono", ui-monospace, Menlo, monospace;
+  --t-11: 11px; --t-12: 12px; --t-13: 13px; --t-15: 15px; --t-22: 22px;
+
+  --row: 40px;
+  --side-w: 232px;
+  --rail-w: 56px;
+
+  --ease: cubic-bezier(.2, 0, 0, 1);
+  --fast: 120ms; --base: 180ms; --slow: 220ms;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 400 var(--t-13)/1.45 var(--font); -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 1.5px solid rgba(255,255,255,.7); outline-offset: 2px; border-radius: 5px; }
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); font-size: var(--t-12); }
+.t2 { color: var(--text-2); } .t3 { color: var(--text-3); }
+.ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+svg.i { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ============ Shell ============ */
+.app { display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); height: 100vh; }
+.app.rail { grid-template-columns: var(--rail-w) minmax(0, 1fr); }
+
+.side { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--line); padding: 10px 8px; color: var(--side-text); }
+.side-top { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px 0 10px; margin-bottom: 8px; }
+.side-top b { color: var(--text); font-size: var(--t-13); font-weight: 600; white-space: nowrap; }
+.icon-btn { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; color: var(--text-3); transition: background var(--fast) var(--ease), color var(--fast) var(--ease); }
+.icon-btn:hover { background: var(--hover); color: var(--text); }
+.side-top .icon-btn { margin-left: auto; }
+.search { display: flex; align-items: center; gap: 8px; height: 30px; margin: 0 2px 10px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--text-3); transition: border-color var(--fast) var(--ease); }
+.search:hover { border-color: var(--line-2); }
+.search span { flex: 1; text-align: left; }
+kbd { font: 500 var(--t-11) var(--font); color: var(--text-3); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 4px; }
+.nav { display: flex; flex-direction: column; gap: 1px; }
+.nav button { position: relative; display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 10px; border-radius: 6px; color: var(--side-text); white-space: nowrap; transition: background var(--fast) var(--ease), color var(--fast) var(--ease); }
+.nav button:hover { background: var(--hover); color: var(--text); }
+.nav button[aria-current="page"] { background: var(--active); color: var(--text); }
+.nav .count { margin-left: auto; font-size: var(--t-11); color: var(--text-3); }
+.side-foot { margin-top: auto; }
+.core-btn { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border-radius: 6px; color: var(--side-text); white-space: nowrap; transition: background var(--fast) var(--ease); }
+.core-btn:hover { background: var(--hover); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; box-shadow: 0 0 0 3px rgba(62,207,142,.12); }
+
+/* rail mode: icons only, labels as tooltips */
+.app.rail .side-top b, .app.rail .search span, .app.rail .search kbd, .app.rail .nav .label, .app.rail .nav .count, .app.rail .core-btn .label { display: none; }
+.app.rail .side-top { padding: 0; justify-content: center; }
+.app.rail .side-top .icon-btn { margin: 0; }
+.app.rail .search { justify-content: center; padding: 0; border-color: transparent; }
+.app.rail .nav button, .app.rail .core-btn { justify-content: center; padding: 0; }
+.app.rail .nav button:hover::after, .app.rail .nav button:focus-visible::after {
+  content: attr(data-label); position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%);
+  padding: 4px 8px; border-radius: 6px; background: #1c1c1c; color: var(--text); font-size: var(--t-12); white-space: nowrap; pointer-events: none; z-index: 20;
+  animation: tip var(--fast) var(--ease);
+}
+@keyframes tip { from { opacity: 0; transform: translate(-3px, -50%); } }
+
+/* main */
+.main { min-width: 0; overflow: auto; container-type: inline-size; container-name: main; }
+.page { max-width: 1080px; margin: 0 auto; padding: 28px 32px 80px; }
+.page[hidden] { display: none; }
+.page.enter { animation: enter var(--base) var(--ease); }
+@keyframes enter { from { opacity: 0; transform: translateY(4px); } }
+
+.ph { display: flex; align-items: center; gap: 12px; min-height: 36px; margin-bottom: 20px; }
+.ph h1 { margin: 0; font-size: var(--t-22); font-weight: 600; letter-spacing: -.015em; }
+.ph .r { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 7px; font-size: var(--t-13); white-space: nowrap; transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease), transform 80ms var(--ease); }
+.btn:hover { background: var(--hover); border-color: rgba(255,255,255,.2); }
+.btn:active { transform: scale(.97); }
+.btn.primary { background: var(--text); color: #000; border-color: var(--text); font-weight: 500; }
+.btn.primary:hover { background: #dcdcdc; }
+.btn .i { width: 14px; height: 14px; }
+.link { color: var(--text-2); transition: color var(--fast) var(--ease); }
+.link:hover { color: var(--text); }
+
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 18px; overflow-x: auto; scrollbar-width: none; }
+.tabs button { position: relative; height: 34px; padding: 0 10px; color: var(--text-3); white-space: nowrap; transition: color var(--fast) var(--ease); }
+.tabs button:hover { color: var(--text-2); }
+.tabs button[aria-selected="true"] { color: var(--text); }
+.tabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 1.5px; background: var(--text); animation: grow var(--base) var(--ease); }
+@keyframes grow { from { transform: scaleX(.6); opacity: 0; } }
+
+.seg { display: inline-flex; padding: 2px; border: 1px solid var(--line-2); border-radius: 7px; }
+.seg button { height: 22px; padding: 0 10px; border-radius: 5px; font-size: var(--t-12); color: var(--text-3); transition: background var(--fast) var(--ease), color var(--fast) var(--ease); }
+.seg button[aria-pressed="true"] { background: var(--active); color: var(--text); }
+
+.panel-title { display: flex; align-items: center; gap: 10px; margin: 28px 0 8px; }
+.panel-title h2 { margin: 0; font-size: var(--t-13); font-weight: 600; }
+.panel-title .r { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+/* tables as grids so columns can drop at narrow widths */
+.table { border-top: 1px solid var(--line); }
+.tr { display: grid; align-items: center; gap: 16px; min-height: var(--row); padding: 8px 8px; border-bottom: 1px solid var(--line); border-radius: 0; transition: background var(--fast) var(--ease); }
+.tr.head { min-height: 32px; padding-top: 0; padding-bottom: 0; color: var(--text-3); font-size: var(--t-12); }
+.tr.click { cursor: pointer; }
+.tr.click:hover { background: var(--hover); }
+.cell-who b { display: block; font-weight: 500; }
+.cell-who span { color: var(--text-3); font-size: var(--t-12); }
+.right { text-align: right; justify-self: end; }
+
+.meter { height: 4px; border-radius: 2px; background: rgba(255,255,255,.09); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 100%; border-radius: 2px; background: var(--text); transform-origin: left; transform: scaleX(var(--v)); transition: transform 400ms var(--ease); }
+.meter i.warn { background: var(--warn); } .meter i.bad { background: var(--bad); }
+.mini { display: grid; gap: 5px; }
+.mini .top { display: flex; justify-content: space-between; font-size: var(--t-12); color: var(--text-3); }
+.mini .top b { color: var(--text); font-weight: 500; }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-12); color: var(--text-2); white-space: nowrap; }
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); }
+.badge.ok::before { background: var(--ok); } .badge.warn::before { background: var(--warn); } .badge.bad::before { background: var(--bad); }
+
+/* ============ Overview ============ */
+.hero { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; padding: 18px 0 24px; border-bottom: 1px solid var(--line); }
+.hero-who { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.hero-who b { font-size: var(--t-15); font-weight: 600; }
+.stat .k { font-size: var(--t-12); color: var(--text-3); }
+.stat .v { margin: 6px 0 10px; font-size: 34px; font-weight: 600; letter-spacing: -.03em; line-height: 1; }
+.stat .f { margin-top: 8px; font-size: var(--t-12); color: var(--text-3); }
+
+.acct-row { grid-template-columns: 16px 18px minmax(160px, 1.4fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(120px, auto); }
+.handle { color: var(--text-3); cursor: grab; opacity: 0; transition: opacity var(--fast) var(--ease); }
+.manual .handle { opacity: 1; }
+.rank { color: var(--text-3); font-size: var(--t-12); text-align: right; }
+.tr.dragging { opacity: .4; }
+.tr.over { box-shadow: inset 0 1.5px 0 var(--text); }
+.note { margin: 10px 0 0; color: var(--text-3); font-size: var(--t-12); }
+
+.act-row { grid-template-columns: 96px minmax(0, 1fr) auto; }
+
+/* ============ Accounts ============ */
+.acc-row { grid-template-columns: minmax(180px, 1.5fr) 110px minmax(120px, 1fr) minmax(120px, 1fr) 110px 18px; }
+.provider { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); }
+.pmark { width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; font: 600 10px var(--font); color: #000; flex: none; }
+.chev { color: var(--text-3); }
+
+/* Sheet */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity var(--slow) var(--ease); z-index: 30; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.sheet { position: fixed; top: 8px; right: 8px; bottom: 8px; width: min(460px, calc(100vw - 16px)); background: var(--raise); border: 1px solid var(--line-2); border-radius: 12px; display: flex; flex-direction: column; transform: translateX(16px); opacity: 0; pointer-events: none; transition: transform var(--slow) var(--ease), opacity var(--slow) var(--ease); z-index: 31; }
+.sheet.open { transform: none; opacity: 1; pointer-events: auto; }
+.sheet-h { display: flex; align-items: flex-start; gap: 10px; padding: 18px 18px 0; }
+.sheet-h h3 { margin: 0; font-size: var(--t-15); font-weight: 600; }
+.sheet-h .icon-btn { margin-left: auto; }
+.sheet .tabs { padding: 0 10px; margin: 14px 0 0; }
+.sheet-body { flex: 1; overflow: auto; padding: 16px 18px; }
+.sheet-f { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); }
+.kv { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px 14px; }
+.kv dt { color: var(--text-3); } .kv dd { margin: 0; }
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+.field label { color: var(--text-2); font-size: var(--t-12); }
+.input, .select { height: 30px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 7px; background: #000; color: var(--text); transition: border-color var(--fast) var(--ease); }
+.input:focus, .select:focus { outline: none; border-color: rgba(255,255,255,.4); }
+textarea.input { height: 72px; padding: 8px 10px; resize: vertical; font: var(--t-12)/1.5 var(--mono); }
+.check { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+
+/* Menu / popover */
+.pop { position: absolute; min-width: 220px; background: var(--raise); border: 1px solid var(--line-2); border-radius: 10px; padding: 4px; box-shadow: 0 12px 32px rgba(0,0,0,.5); transform-origin: top right; transform: scale(.97); opacity: 0; pointer-events: none; transition: transform var(--base) var(--ease), opacity var(--base) var(--ease); z-index: 25; }
+.pop.open { transform: none; opacity: 1; pointer-events: auto; }
+.pop button { display: flex; align-items: center; gap: 10px; width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; text-align: left; transition: background var(--fast) var(--ease); }
+.pop button:hover { background: var(--hover); }
+.pop .sep { height: 1px; margin: 4px 6px; background: var(--line); }
+.pop .lbl { padding: 6px 10px 2px; font-size: var(--t-11); color: var(--text-3); }
+.anchor { position: relative; }
+
+/* ============ Clients ============ */
+.split { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 24px; }
+.list-pane { border-right: 1px solid var(--line); padding-right: 12px; }
+.client { display: flex; align-items: center; gap: 10px; width: 100%; height: 38px; padding: 0 10px; border-radius: 7px; color: var(--text-2); transition: background var(--fast) var(--ease), color var(--fast) var(--ease); }
+.client:hover { background: var(--hover); color: var(--text); }
+.client[aria-selected="true"] { background: var(--active); color: var(--text); }
+.client .badge { margin-left: auto; }
+.client .badge::before { margin: 0; }
+.client .badge span { display: none; }
+.conn { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 22px; }
+.conn > div { padding: 12px 14px; border-right: 1px solid var(--line); min-width: 0; }
+.conn > div:last-child { border-right: 0; }
+.conn .k { font-size: var(--t-12); color: var(--text-3); margin-bottom: 4px; display: flex; }
+.conn .k .link { margin-left: auto; font-size: var(--t-12); }
+.conn .v { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-row { grid-template-columns: minmax(120px, 1fr) 24px minmax(160px, 1.4fr); }
+.sandbox { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 0 0; font-size: var(--t-12); color: var(--text-3); }
+.sandbox .badge { color: var(--ok); }
+
+/* ============ Usage ============ */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px dashed var(--line-2); border-radius: 7px; color: var(--text-2); font-size: var(--t-12); transition: border-color var(--fast) var(--ease); }
+.chip:hover { border-color: rgba(255,255,255,.25); }
+.chip.set { border-style: solid; color: var(--text); }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 18px; }
+.kpi { padding: 14px 16px; border-right: 1px solid var(--line); min-width: 0; }
+.kpi:last-child { border-right: 0; }
+.kpi .k { font-size: var(--t-12); color: var(--text-3); }
+.kpi .v { margin-top: 6px; font-size: var(--t-22); font-weight: 600; letter-spacing: -.02em; }
+.kpi .d { font-size: var(--t-12); color: var(--text-3); }
+.chart { display: grid; grid-template-columns: repeat(24, 1fr); align-items: end; gap: 3px; height: 140px; padding: 12px 0 0; border-bottom: 1px solid var(--line); }
+.chart i { display: block; border-radius: 2px 2px 0 0; background: rgba(255,255,255,.18); transform-origin: bottom; animation: rise 420ms var(--ease) both; transition: background var(--fast) var(--ease); }
+.chart i:hover { background: var(--text); }
+.chart i.cache { background: rgba(124,183,255,.35); }
+@keyframes rise { from { transform: scaleY(.2); opacity: 0; } }
+.axis { display: flex; justify-content: space-between; font-size: var(--t-11); color: var(--text-3); margin-top: 6px; }
+.model-row { grid-template-columns: minmax(140px, 1.3fr) 90px 90px 90px 90px; }
+.req-row { grid-template-columns: 70px minmax(120px, 1.2fr) minmax(110px, 1fr) 80px 80px 80px 60px; }
+
+/* ============ Settings ============ */
+.settings { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 28px; }
+.snav { display: flex; flex-direction: column; gap: 1px; position: sticky; top: 0; align-self: start; }
+.snav button { height: 30px; padding: 0 10px; border-radius: 6px; text-align: left; color: var(--text-2); transition: background var(--fast) var(--ease), color var(--fast) var(--ease); }
+.snav button:hover { background: var(--hover); color: var(--text); }
+.snav button[aria-selected="true"] { background: var(--active); color: var(--text); }
+.snav .grp { padding: 14px 10px 4px; font-size: var(--t-11); color: var(--text-3); }
+.sect[hidden] { display: none; }
+.sect h2 { margin: 0 0 4px; font-size: var(--t-15); font-weight: 600; }
+.srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; min-height: 52px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.srow .k b { display: block; font-weight: 500; }
+.srow .k span { color: var(--text-3); font-size: var(--t-12); }
+.switch { position: relative; width: 30px; height: 18px; border-radius: 9px; background: rgba(255,255,255,.16); transition: background var(--base) var(--ease); flex: none; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform var(--base) var(--ease); }
+.switch[aria-checked="true"] { background: var(--ok); }
+.switch[aria-checked="true"]::after { transform: translateX(12px); }
+.version-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+
+/* ============ Command palette ============ */
+.cmdk { position: fixed; top: 14vh; left: 50%; width: min(560px, calc(100vw - 32px)); transform: translateX(-50%) scale(.97); opacity: 0; pointer-events: none; background: var(--raise); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: 0 24px 60px rgba(0,0,0,.6); transition: transform var(--base) var(--ease), opacity var(--base) var(--ease); z-index: 41; overflow: hidden; }
+.cmdk.open { transform: translateX(-50%); opacity: 1; pointer-events: auto; }
+.cmdk input { width: 100%; height: 48px; padding: 0 16px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); font-size: var(--t-15); outline: none; }
+.cmdk ul { list-style: none; margin: 0; padding: 6px; max-height: 320px; overflow: auto; }
+.cmdk li button { display: flex; align-items: center; gap: 10px; width: 100%; height: 36px; padding: 0 10px; border-radius: 7px; text-align: left; color: var(--text-2); }
+.cmdk li button[aria-selected="true"], .cmdk li button:hover { background: var(--active); color: var(--text); }
+.cmdk li button span { margin-left: auto; font-size: var(--t-11); color: var(--text-3); }
+.cmdk-scrim { z-index: 40; }
+
+/* ============ Responsive ============ */
+@container main (max-width: 900px) {
+  .acct-row { grid-template-columns: 16px 18px minmax(140px, 1fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(110px, auto); }
+  .acct-row .c-fable { display: none; }
+  .acc-row { grid-template-columns: minmax(160px, 1.4fr) 100px minmax(110px, 1fr) 100px 18px; }
+  .acc-row .c-week { display: none; }
+  .req-row { grid-template-columns: 70px minmax(120px, 1fr) 80px 80px 60px; }
+  .req-row .c-acct, .req-row .c-lat { display: none; }
+  .settings { grid-template-columns: 170px minmax(0, 1fr); gap: 20px; }
+}
+@container main (max-width: 700px) {
+  .page { padding: 20px 18px 64px; }
+  .hero { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .hero .stat:last-child { display: none; }
+  .acct-row { grid-template-columns: 16px 18px minmax(0, 1fr) minmax(90px, 120px); }
+  .acct-row .c-5h, .acct-row .c-fable { display: none; }
+  .acct-row.head .c-state { display: none; }
+  .acct-row:not(.head) .c-state { grid-column: 3 / -1; justify-self: start; margin-top: 2px; }
+  .acct-row { row-gap: 0; }
+  .acc-row { grid-template-columns: minmax(0, 1fr) 90px 18px; }
+  .acc-row .c-plan, .acc-row .c-5h, .acc-row .c-week { display: none; }
+  .split, .settings { grid-template-columns: 1fr; }
+  .list-pane { border-right: 0; padding-right: 0; display: flex; overflow-x: auto; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .client { width: auto; flex: none; }
+  .client .badge { display: none; }
+  .snav { position: static; flex-direction: row; overflow-x: auto; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .snav .grp { display: none; }
+  .snav button { flex: none; }
+  .conn, .kpis { grid-template-columns: 1fr 1fr; }
+  .conn > div:nth-child(2), .kpi:nth-child(2) { border-right: 0; }
+  .conn > div:nth-child(-n+2), .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .model-row { grid-template-columns: minmax(0, 1fr) 80px 80px; }
+  .model-row .c-tok, .model-row .c-cache { display: none; }
+  .req-row { grid-template-columns: 60px minmax(0, 1fr) 70px 50px; }
+  .req-row .c-tok { display: none; }
+}
+@media (max-width: 1080px) { .app:not(.pinned) { grid-template-columns: var(--rail-w) minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; }
+  .page.enter { animation: fade var(--base) linear; }
+  .sheet, .pop, .cmdk { transform: none !important; }
+  .chart i { animation: none; }
+  @keyframes fade { from { opacity: 0; } }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-overview" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+  <symbol id="i-accounts" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .7 3.2 2.5 3.5 5.2"/></symbol>
+  <symbol id="i-clients" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-usage" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="3"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<div class="app" id="app">
+  <aside class="side" aria-label="Sidebar">
+    <div class="side-top">
+      <b>CPA Desk</b>
+      <button class="icon-btn" id="collapse" type="button" aria-label="Toggle sidebar" title="Toggle sidebar  ⌘\"><svg class="i"><use href="#i-panel"/></svg></button>
+    </div>
+    <button class="search" type="button" id="open-cmdk"><svg class="i"><use href="#i-search"/></svg><span>Search</span><kbd>⌘K</kbd></button>
+    <nav class="nav" aria-label="Main">
+      <button data-page="overview" data-label="Overview" aria-current="page"><svg class="i"><use href="#i-overview"/></svg><span class="label">Overview</span></button>
+      <button data-page="accounts" data-label="Accounts"><svg class="i"><use href="#i-accounts"/></svg><span class="label">Accounts</span><span class="count num">8</span></button>
+      <button data-page="clients" data-label="Clients"><svg class="i"><use href="#i-clients"/></svg><span class="label">Clients</span></button>
+      <button data-page="usage" data-label="Usage"><svg class="i"><use href="#i-usage"/></svg><span class="label">Usage</span></button>
+      <button data-page="settings" data-label="Settings"><svg class="i"><use href="#i-settings"/></svg><span class="label">Settings</span></button>
+    </nav>
+    <div class="side-foot anchor">
+      <button class="core-btn" id="core-btn" type="button" aria-haspopup="menu"><span class="dot"></span><span class="label">Core running · 8327</span></button>
+      <div class="pop" id="core-pop" role="menu" style="bottom:40px;left:0;transform-origin:bottom left">
+        <div class="lbl">Core 8.0.6-rafay.1 · PID 33275</div>
+        <button type="button" role="menuitem">Restart core</button>
+        <button type="button" role="menuitem">Stop core</button>
+        <div class="sep"></div>
+        <button type="button" role="menuitem" data-go="settings" data-sect="updates">Versions and updates</button>
+        <button type="button" role="menuitem">Open logs folder</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <!-- ======================= Overview ======================= -->
+    <div class="page" data-view="overview">
+      <div class="ph">
+        <h1>Overview</h1>
+        <div class="r"><span class="t3 num">Updated 17:13</span><button class="btn" type="button"><svg class="i"><use href="#i-refresh"/></svg>Refresh</button></div>
+      </div>
+      <section class="hero">
+        <div class="hero-who"><span class="t3">New sessions go to</span><b>primary</b><span class="t3">primary@gmail.com</span></div>
+        <div class="stat"><div class="k">5 hour</div><div class="v num">2%</div><div class="meter"><i style="--v:.02"></i></div><div class="f">Resets 21:49</div></div>
+        <div class="stat"><div class="k">Week</div><div class="v num">12%</div><div class="meter"><i style="--v:.12"></i></div><div class="f">Resets Fri 17:59 · 6d left</div></div>
+        <div class="stat"><div class="k">Fable week</div><div class="v num">0%</div><div class="meter"><i style="--v:0"></i></div><div class="f">Resets Fri 18:00</div></div>
+      </section>
+
+      <div class="panel-title">
+        <h2>Order</h2>
+        <div class="r">
+          <div class="seg" role="group" aria-label="Order mode"><button type="button" aria-pressed="true" data-mode="auto">Automatic</button><button type="button" aria-pressed="false" data-mode="manual">Manual</button></div>
+        </div>
+      </div>
+      <div class="table" id="order">
+        <div class="tr head acct-row"><span></span><span class="rank">#</span><span>Account</span><span class="c-5h">5 hour</span><span>Week</span><span class="c-fable">Fable week</span><span class="right c-state">Status</span></div>
+        <div class="tr acct-row" data-name="primary"><svg class="i handle"><use href="#i-grip"/></svg><span class="rank num">1</span><span class="cell-who"><b>primary</b><span>primary@gmail.com</span></span><span class="mini c-5h"><span class="top"><span>5h</span><b class="num">2%</b></span><span class="meter"><i style="--v:.02"></i></span></span><span class="mini"><span class="top"><span>Fri 17:59</span><b class="num">12%</b></span><span class="meter"><i style="--v:.12"></i></span></span><span class="mini c-fable"><span class="top"><span>Fri 18:00</span><b class="num">0%</b></span><span class="meter"><i style="--v:0"></i></span></span><span class="right c-state"><span class="badge ok">Serving</span></span></div>
+        <div class="tr acct-row" data-name="backend"><svg class="i handle"><use href="#i-grip"/></svg><span class="rank num">2</span><span class="cell-who"><b>backend</b><span>backend@company.com</span></span><span class="mini c-5h"><span class="top"><span>5h</span><b class="num bad">100%</b></span><span class="meter"><i class="bad" style="--v:1"></i></span></span><span class="mini"><span class="top"><span>Sat 07:59</span><b class="num">34%</b></span><span class="meter"><i style="--v:.34"></i></span></span><span class="mini c-fable"><span class="top"><span>Sat 07:59</span><b class="num">8%</b></span><span class="meter"><i style="--v:.08"></i></span></span><span class="right c-state"><span class="badge warn">Back 17:59</span></span></div>
+        <div class="tr acct-row" data-name="weekend"><svg class="i handle"><use href="#i-grip"/></svg><span class="rank num">3</span><span class="cell-who"><b>weekend</b><span>weekend@gmail.com</span></span><span class="mini c-5h"><span class="top"><span>5h</span><b class="num">1%</b></span><span class="meter"><i style="--v:.01"></i></span></span><span class="mini"><span class="top"><span>Sun 00:00</span><b class="num bad">98%</b></span><span class="meter"><i class="bad" style="--v:.98"></i></span></span><span class="mini c-fable"><span class="top"><span>Sun 00:00</span><b class="num">14%</b></span><span class="meter"><i style="--v:.14"></i></span></span><span class="right c-state"><span class="badge warn">Week nearly used</span></span></div>
+      </div>
+      <p class="note" id="order-note">Automatic: soonest weekly reset first. Skips accounts at 85% of 5 hour or 95% of week. Sessions already on an account stay there.</p>
+
+      <div class="panel-title"><h2>Activity</h2><div class="r"><button class="link" type="button" data-go="usage">All usage</button></div></div>
+      <div class="table">
+        <div class="tr act-row"><span class="t3 num">17:13</span><span>1 warm session on <b>primary</b> <span class="t3">· cache holds 58 more minutes</span></span><span class="t3">Opus 5.5</span></div>
+        <div class="tr act-row"><span class="t3 num">Oct 2</span><span>Session moved <b>weekend</b> to <b>primary</b> <span class="t3">· network timeout</span></span><span class="t3">Cache rebuilt</span></div>
+      </div>
+    </div>
+
+    <!-- ======================= Accounts ======================= -->
+    <div class="page" data-view="accounts" hidden>
+      <div class="ph">
+        <h1>Accounts</h1>
+        <div class="r anchor">
+          <button class="btn" type="button"><svg class="i"><use href="#i-file"/></svg>Open folder</button>
+          <button class="btn primary" type="button" id="add-btn" aria-haspopup="menu"><svg class="i"><use href="#i-plus"/></svg>Add<svg class="i"><use href="#i-down"/></svg></button>
+          <div class="pop" id="add-pop" role="menu" style="top:34px;right:0">
+            <div class="lbl">Sign in with a subscription</div>
+            <button type="button" role="menuitem"><span class="pmark" style="background:#d97757">C</span>Claude</button>
+            <button type="button" role="menuitem"><span class="pmark" style="background:#fff">O</span>Codex (ChatGPT)</button>
+            <button type="button" role="menuitem"><span class="pmark" style="background:#7aa2ff">A</span>Antigravity</button>
+            <button type="button" role="menuitem"><span class="pmark" style="background:#bbb">K</span>Kimi</button>
+            <button type="button" role="menuitem"><span class="pmark" style="background:#ddd">X</span>xAI</button>
+            <button type="button" role="menuitem"><span class="pmark" style="background:#9be7c4">D</span>Devin</button>
+            <div class="sep"></div>
+            <div class="lbl">Use an API key</div>
+            <button type="button" role="menuitem"><svg class="i"><use href="#i-key"/></svg>Provider API key</button>
+            <div class="sep"></div>
+            <button type="button" role="menuitem"><svg class="i"><use href="#i-file"/></svg>Import credential file</button>
+          </div>
+        </div>
+      </div>
+      <div class="tabs" role="tablist" data-tabs="acc">
+        <button role="tab" aria-selected="true" data-tab="all">All <span class="t3 num">8</span></button>
+        <button role="tab" aria-selected="false" data-tab="subs">Subscriptions <span class="t3 num">4</span></button>
+        <button role="tab" aria-selected="false" data-tab="keys">API keys <span class="t3 num">4</span></button>
+        <button role="tab" aria-selected="false" data-tab="excl">Model exclusions</button>
+      </div>
+      <div class="table">
+        <div class="tr head acc-row"><span>Account</span><span class="c-plan">Plan</span><span class="c-5h">5 hour</span><span class="c-week">Week</span><span class="right">Status</span><span></span></div>
+        <div class="tr click acc-row" data-sheet="primary" data-email="primary@gmail.com"><span class="cell-who"><b>primary</b><span>primary@gmail.com</span></span><span class="provider c-plan"><span class="pmark" style="background:#d97757">C</span>Max</span><span class="mini c-5h"><span class="top"><span>5h</span><b class="num">2%</b></span><span class="meter"><i style="--v:.02"></i></span></span><span class="mini c-week"><span class="top"><span>week</span><b class="num">12%</b></span><span class="meter"><i style="--v:.12"></i></span></span><span class="right"><span class="badge ok">Active</span></span><svg class="i chev"><use href="#i-chev"/></svg></div>
+        <div class="tr click acc-row" data-sheet="backend" data-email="backend@company.com"><span class="cell-who"><b>backend</b><span>backend@company.com</span></span><span class="provider c-plan"><span class="pmark" style="background:#d97757">C</span>Max</span><span class="mini c-5h"><span class="top"><span>5h</span><b class="num bad">100%</b></span><span class="meter"><i class="bad" style="--v:1"></i></span></span><span class="mini c-week"><span class="top"><span>week</span><b class="num">34%</b></span><span class="meter"><i style="--v:.34"></i></span></span><span class="right"><span class="badge warn">Limited</span></span><svg class="i chev"><use href="#i-chev"/></svg></div>
+        <div class="tr click acc-row" data-sheet="weekend" data-email="weekend@gmail.com"><span class="cell-who"><b>weekend</b><span>weekend@gmail.com</span></span><span class="provider c-plan"><span class="pmark" style="background:#d97757">C</span>Max</span><span class="mini c-5h"><span class="top"><span>5h</span><b class="num">1%</b></span><span class="meter"><i style="--v:.01"></i></span></span><span class="mini c-week"><span class="top"><span>week</span><b class="num bad">98%</b></span><span class="meter"><i class="bad" style="--v:.98"></i></span></span><span class="right"><span class="badge warn">Limited</span></span><svg class="i chev"><use href="#i-chev"/></svg></div>
+        <div class="tr click acc-row" data-sheet="codex" data-email="codex@gmail.com"><span class="cell-who"><b>codex</b><span>codex@gmail.com</span></span><span class="provider c-plan"><span class="pmark" style="background:#fff">O</span>Free</span><span class="mini c-5h"><span class="top"><span>5h</span><b class="num">0%</b></span><span class="meter"><i style="--v:0"></i></span></span><span class="mini c-week"><span class="top"><span>week</span><b class="num">6%</b></span><span class="meter"><i style="--v:.06"></i></span></span><span class="right"><span class="badge ok">Active</span></span><svg class="i chev"><use href="#i-chev"/></svg></div>
+        <div class="tr click acc-row" data-sheet="Anthropic API" data-email="API key · sk-ant…f3a9"><span class="cell-who"><b>Anthropic API</b><span>API key · sk-ant…f3a9</span></span><span class="provider c-plan"><svg class="i"><use href="#i-key"/></svg>Key</span><span class="t3 c-5h">12 models</span><span class="t3 c-week">priority 0</span><span class="right"><span class="badge ok">Healthy</span></span><svg class="i chev"><use href="#i-chev"/></svg></div>
+        <div class="tr click acc-row" data-sheet="DeepSeek" data-email="API key · sk-…2c1d"><span class="cell-who"><b>DeepSeek</b><span>API key · sk-…2c1d</span></span><span class="provider c-plan"><svg class="i"><use href="#i-key"/></svg>Key</span><span class="t3 c-5h">3 models</span><span class="t3 c-week">priority 0</span><span class="right"><span class="badge">Unchecked</span></span><svg class="i chev"><use href="#i-chev"/></svg></div>
+      </div>
+    </div>
+
+    <!-- ======================= Clients ======================= -->
+    <div class="page" data-view="clients" hidden>
+      <div class="ph">
+        <h1>Clients</h1>
+        <div class="r"><button class="btn" type="button"><svg class="i"><use href="#i-refresh"/></svg>Detect again</button></div>
+      </div>
+      <div class="conn">
+        <div><div class="k">Base URL<button class="link" type="button">Copy</button></div><div class="v mono">http://127.0.0.1:8327</div></div>
+        <div><div class="k">OpenAI compatible<button class="link" type="button">Copy</button></div><div class="v mono">http://127.0.0.1:8327/v1</div></div>
+        <div><div class="k">API key<button class="link" type="button">Copy</button></div><div class="v mono">••••••••••56</div></div>
+      </div>
+      <div class="split">
+        <div class="list-pane" role="listbox" aria-label="Clients">
+          <button class="client" type="button" aria-selected="true">Claude Code<span class="badge ok"><span>Set up</span></span></button>
+          <button class="client" type="button" aria-selected="false">Claude Desktop<span class="badge"><span>Not set up</span></span></button>
+          <button class="client" type="button" aria-selected="false">Codex<span class="badge"><span>Not set up</span></span></button>
+          <button class="client" type="button" aria-selected="false">OpenCode<span class="badge"><span>Not set up</span></span></button>
+          <button class="client" type="button" aria-selected="false">OpenClaw<span class="badge"><span>Not found</span></span></button>
+          <button class="client" type="button" aria-selected="false">Hermes<span class="badge"><span>Not found</span></span></button>
+          <button class="client" type="button" aria-selected="false">DeepSeek Harness<span class="badge"><span>Not found</span></span></button>
+          <button class="client" type="button" aria-selected="false">Pi<span class="badge"><span>Not found</span></span></button>
+          <button class="client" type="button" aria-selected="false">Antigravity<span class="badge"><span>Not found</span></span></button>
+          <button class="client" type="button" aria-selected="false">WorkBuddy<span class="badge"><span>Not found</span></span></button>
+        </div>
+        <div>
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <h2 style="margin:0;font-size:var(--t-15);font-weight:600">Claude Code</h2><span class="t3">2.1.287 · ~/.local/bin/claude</span>
+            <span style="margin-left:auto;display:flex;gap:8px"><button class="btn" type="button">Launch</button><button class="btn primary" type="button">Apply</button></span>
+          </div>
+          <div class="sandbox"><span class="badge ok">Sandbox</span><span>Writes inside CPA Desk only. Your real ~/.claude is untouched.</span><button class="link" type="button">Use real configs</button></div>
+          <div class="tabs" role="tablist" data-tabs="client" style="margin-top:14px">
+            <button role="tab" aria-selected="true" data-tab="setup">Setup</button>
+            <button role="tab" aria-selected="false" data-tab="backups">Backups</button>
+            <button role="tab" aria-selected="false" data-tab="sessions">Sessions</button>
+          </div>
+          <div class="table">
+            <div class="tr head map-row"><span>Claude Code asks for</span><span></span><span>Send to</span></div>
+            <div class="tr map-row"><span>Opus</span><svg class="i t3"><use href="#i-arrow"/></svg><select class="select"><option>claude-opus-5-5</option></select></div>
+            <div class="tr map-row"><span>Sonnet</span><svg class="i t3"><use href="#i-arrow"/></svg><select class="select"><option>claude-sonnet-5-5</option></select></div>
+            <div class="tr map-row"><span>Haiku</span><svg class="i t3"><use href="#i-arrow"/></svg><select class="select"><option>claude-haiku-4-5-20251001</option></select></div>
+            <div class="tr map-row"><span>Subagents</span><svg class="i t3"><use href="#i-arrow"/></svg><select class="select"><option>Same as main model</option></select></div>
+          </div>
+          <label class="check"><button class="switch" type="button" role="switch" aria-checked="true" aria-label="1M context"></button><span>Enable 1M context for Opus</span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================= Usage ======================= -->
+    <div class="page" data-view="usage" hidden>
+      <div class="ph">
+        <h1>Usage</h1>
+        <div class="r"><div class="seg" role="group" aria-label="Range"><button type="button" aria-pressed="true">24h</button><button type="button" aria-pressed="false">7d</button><button type="button" aria-pressed="false">30d</button><button type="button" aria-pressed="false">All</button></div></div>
+      </div>
+      <div class="tabs" role="tablist" data-tabs="usage">
+        <button role="tab" aria-selected="true" data-tab="overview">Overview</button>
+        <button role="tab" aria-selected="false" data-tab="analysis">Analysis</button>
+        <button role="tab" aria-selected="false" data-tab="requests">Requests</button>
+        <button role="tab" aria-selected="false" data-tab="prices">Prices</button>
+        <button role="tab" aria-selected="false" data-tab="data">Data</button>
+      </div>
+      <div class="filters">
+        <button class="chip set" type="button">Provider: Claude <svg class="i" style="width:12px;height:12px"><use href="#i-x"/></svg></button>
+        <button class="chip" type="button"><svg class="i" style="width:12px;height:12px"><use href="#i-plus"/></svg>Model</button>
+        <button class="chip" type="button"><svg class="i" style="width:12px;height:12px"><use href="#i-plus"/></svg>Account</button>
+        <button class="chip" type="button"><svg class="i" style="width:12px;height:12px"><use href="#i-plus"/></svg>API key</button>
+        <button class="chip" type="button"><svg class="i" style="width:12px;height:12px"><use href="#i-plus"/></svg>Result</button>
+      </div>
+      <div data-usage="overview">
+        <div class="kpis">
+          <div class="kpi"><div class="k">Requests</div><div class="v num">1,702</div><div class="d">99.6% succeeded</div></div>
+          <div class="kpi"><div class="k">Tokens</div><div class="v num">6.5M</div><div class="d">in 6.4M · out 0.1M</div></div>
+          <div class="kpi"><div class="k">Cache hit</div><div class="v num">98.4%</div><div class="d">6.3M read · 0.1M written</div></div>
+          <div class="kpi"><div class="k">API value</div><div class="v num">$41.20</div><div class="d">at list prices</div></div>
+        </div>
+        <div class="chart" aria-label="Tokens per hour">
+          <i style="height:20%;animation-delay:0ms"></i><i style="height:32%;animation-delay:15ms"></i><i style="height:14%;animation-delay:30ms"></i><i style="height:9%;animation-delay:45ms"></i><i style="height:6%;animation-delay:60ms"></i><i style="height:4%;animation-delay:75ms"></i><i style="height:5%;animation-delay:90ms"></i><i style="height:8%;animation-delay:105ms"></i><i style="height:22%;animation-delay:120ms"></i><i style="height:48%;animation-delay:135ms"></i><i style="height:63%;animation-delay:150ms"></i><i style="height:80%;animation-delay:165ms"></i><i style="height:74%;animation-delay:180ms"></i><i style="height:92%;animation-delay:195ms"></i><i style="height:58%;animation-delay:210ms"></i><i style="height:71%;animation-delay:225ms"></i><i style="height:86%;animation-delay:240ms"></i><i style="height:61%;animation-delay:255ms"></i><i style="height:44%;animation-delay:270ms"></i><i style="height:52%;animation-delay:285ms"></i><i style="height:37%;animation-delay:300ms"></i><i style="height:29%;animation-delay:315ms"></i><i style="height:41%;animation-delay:330ms"></i><i style="height:25%;animation-delay:345ms"></i>
+        </div>
+        <div class="axis"><span>18:00</span><span>00:00</span><span>06:00</span><span>12:00</span><span>Now</span></div>
+        <div class="panel-title"><h2>By model</h2></div>
+        <div class="table">
+          <div class="tr head model-row"><span>Model</span><span class="right">Requests</span><span class="right c-tok">Tokens</span><span class="right c-cache">Cache hit</span><span class="right">Value</span></div>
+          <div class="tr model-row"><span>Opus 5.5</span><span class="right num">1,560</span><span class="right num c-tok">6.1M</span><span class="right num c-cache">98.6%</span><span class="right num">$38.90</span></div>
+          <div class="tr model-row"><span>Fable 5.1</span><span class="right num">118</span><span class="right num c-tok">0.4M</span><span class="right num c-cache">96.0%</span><span class="right num">$2.20</span></div>
+          <div class="tr model-row"><span>Haiku 4.5</span><span class="right num">24</span><span class="right num c-tok">0.06M</span><span class="right num c-cache">92.1%</span><span class="right num">$0.10</span></div>
+        </div>
+      </div>
+      <div data-usage="requests" hidden>
+        <div class="table">
+          <div class="tr head req-row"><span>Time</span><span>Model</span><span class="c-acct">Account</span><span class="right c-tok">Input</span><span class="right">Cache</span><span class="right c-lat">Latency</span><span class="right">Status</span></div>
+          <div class="tr click req-row"><span class="t3 num">17:13:02</span><span>opus-5-5</span><span class="c-acct t2">primary</span><span class="right num c-tok">490k</span><span class="right num">99%</span><span class="right num c-lat">8.2s</span><span class="right ok">200</span></div>
+          <div class="tr click req-row"><span class="t3 num">17:12:51</span><span>opus-5-5</span><span class="c-acct t2">primary</span><span class="right num c-tok">489k</span><span class="right num">99%</span><span class="right num c-lat">11.4s</span><span class="right ok">200</span></div>
+          <div class="tr click req-row"><span class="t3 num">17:12:30</span><span>haiku-4-5</span><span class="c-acct t2">primary</span><span class="right num c-tok">32k</span><span class="right num">100%</span><span class="right num c-lat">1.1s</span><span class="right ok">200</span></div>
+          <div class="tr click req-row"><span class="t3 num">16:57:27</span><span>haiku-4-5</span><span class="c-acct t2">none</span><span class="right num c-tok">0</span><span class="right num">0%</span><span class="right num c-lat">2ms</span><span class="right bad">400</span></div>
+        </div>
+      </div>
+      <div data-usage="other" hidden><p class="t3">Analysis, prices and data management keep their current content, laid out with the same tables, filters and spacing.</p></div>
+    </div>
+
+    <!-- ======================= Settings ======================= -->
+    <div class="page" data-view="settings" hidden>
+      <div class="ph"><h1>Settings</h1></div>
+      <div class="settings">
+        <nav class="snav" aria-label="Settings sections">
+          <div class="grp">Proxy</div>
+          <button type="button" aria-selected="true" data-sect="routing">Routing</button>
+          <button type="button" aria-selected="false" data-sect="network">Network</button>
+          <button type="button" aria-selected="false" data-sect="access">Access keys</button>
+          <div class="grp">Models</div>
+          <button type="button" aria-selected="false" data-sect="aliases">Model aliases</button>
+          <button type="button" aria-selected="false" data-sect="words">Prompt filters</button>
+          <div class="grp">App</div>
+          <button type="button" aria-selected="false" data-sect="app">General</button>
+          <button type="button" aria-selected="false" data-sect="logs">Logs</button>
+          <button type="button" aria-selected="false" data-sect="updates">Versions</button>
+        </nav>
+        <div>
+          <section class="sect" data-sect-view="routing">
+            <h2>Routing</h2>
+            <div class="srow"><span class="k"><b>Strategy</b><span>How new sessions pick an account</span></span><select class="select"><option>Fill first by priority</option><option>Round robin</option><option>Weighted round robin</option></select></div>
+            <div class="srow"><span class="k"><b>Keep sessions on their account</b><span>70 minutes after the last request</span></span><button class="switch" type="button" role="switch" aria-checked="true" aria-label="Session affinity"></button></div>
+            <div class="srow"><span class="k"><b>Skip near the 5 hour limit</b><span>New sessions only</span></span><select class="select"><option>85%</option><option>90%</option><option>95%</option></select></div>
+            <div class="srow"><span class="k"><b>Skip near the weekly limit</b><span>New sessions only</span></span><select class="select"><option>95%</option><option>98%</option><option>Never</option></select></div>
+            <div class="srow"><span class="k"><b>Retries</b><span>Same account first on network and 5xx errors</span></span><select class="select"><option>3</option><option>1</option><option>0</option></select></div>
+            <div class="srow"><span class="k"><b>Remember cooldowns across restarts</b></span><button class="switch" type="button" role="switch" aria-checked="true" aria-label="Save cooldown"></button></div>
+          </section>
+          <section class="sect" data-sect-view="network" hidden>
+            <h2>Network</h2>
+            <div class="srow"><span class="k"><b>Port</b></span><input class="input num" value="8327" style="width:90px"></div>
+            <div class="srow"><span class="k"><b>Allow other devices</b><span>Listen on the local network</span></span><button class="switch" type="button" role="switch" aria-checked="false" aria-label="LAN"></button></div>
+            <div class="srow"><span class="k"><b>Upstream proxy</b><span>socks5, http or https</span></span><input class="input" placeholder="None" style="width:220px"></div>
+            <div class="srow"><span class="k"><b>TLS</b><span>Serve over HTTPS with your certificate</span></span><button class="btn" type="button">Configure</button></div>
+          </section>
+          <section class="sect" data-sect-view="updates" hidden>
+            <h2>Versions</h2>
+            <div class="srow version-row"><span class="k"><b>Proxy core</b><span>8.0.6-rafay.1 · upstream 8.0.13</span></span><button class="link" type="button">Release notes</button><button class="btn" type="button">Review update</button></div>
+            <div class="srow version-row"><span class="k"><b>CPA Desk</b><span>0.3.12 · built from source</span></span><span></span><span class="t3">Rebuild to update</span></div>
+            <div class="srow version-row"><span class="k"><b>Codex model catalog</b><span>Revision 2026-10-01</span></span><span></span><button class="btn" type="button">Refresh</button></div>
+            <div class="srow"><span class="k"><b>Download source</b></span><select class="select"><option>Official GitHub</option><option>Custom mirror</option></select></div>
+          </section>
+          <section class="sect" data-sect-view="other" hidden>
+            <h2 id="other-title">Section</h2>
+            <p class="t3">Keeps all of its current options, laid out as rows like Routing.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Account sheet -->
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-label="Account details" aria-hidden="true">
+  <div class="sheet-h">
+    <div><h3 id="s-title">primary</h3><div class="t3" id="s-email">primary@gmail.com</div></div>
+    <button class="icon-btn" type="button" id="s-close" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="tabs" role="tablist" data-tabs="sheet">
+    <button role="tab" aria-selected="true" data-tab="quota">Quota</button>
+    <button role="tab" aria-selected="false" data-tab="settings">Settings</button>
+    <button role="tab" aria-selected="false" data-tab="models">Models</button>
+    <button role="tab" aria-selected="false" data-tab="health">Health</button>
+  </div>
+  <div class="sheet-body">
+    <div data-sheet-tab="quota">
+      <dl class="kv">
+        <dt>5 hour</dt><dd><span class="num">2%</span> <span class="t3">· resets 21:49</span></dd>
+        <dt>Week</dt><dd><span class="num">12%</span> <span class="t3">· resets Fri 17:59</span></dd>
+        <dt>Fable week</dt><dd><span class="num">0%</span> <span class="t3">· resets Fri 18:00</span></dd>
+        <dt>Plan</dt><dd>Claude Max</dd>
+        <dt>Token</dt><dd>Refreshes 18:54</dd>
+      </dl>
+    </div>
+    <div data-sheet-tab="settings" hidden>
+      <div class="field"><label>Priority</label><input class="input num" value="3"><span class="t3" style="font-size:var(--t-12)">Set automatically while Order is Automatic</span></div>
+      <div class="field"><label>Weight</label><input class="input num" placeholder="1"></div>
+      <div class="field"><label>Proxy URL</label><input class="input" placeholder="Use global"></div>
+      <div class="field"><label>Extra headers</label><textarea class="input" placeholder="X-Header: value"></textarea></div>
+      <label class="check"><button class="switch" type="button" role="switch" aria-checked="false" aria-label="Disable cooling"></button>Never cool down this account</label>
+    </div>
+    <div data-sheet-tab="models" hidden>
+      <div class="field"><label>Excluded models, one per line</label><textarea class="input" placeholder="claude-opus-4-*"></textarea></div>
+      <p class="t3" style="font-size:var(--t-12)">42 models supported. <button class="link" type="button">View all</button></p>
+    </div>
+    <div data-sheet-tab="health" hidden>
+      <dl class="kv"><dt>Last 3 hours</dt><dd>187 requests · 100% ok</dd><dt>Last error</dt><dd class="t3">None</dd><dt>Cooldown</dt><dd class="t3">None</dd></dl>
+    </div>
+  </div>
+  <div class="sheet-f"><button class="btn" type="button">Disable</button><button class="btn" type="button"><span class="bad">Remove</span></button><button class="btn primary" type="button" style="margin-left:auto">Save</button></div>
+</aside>
+
+<!-- Command palette -->
+<div class="scrim cmdk-scrim" id="cmdk-scrim"></div>
+<div class="cmdk" id="cmdk" role="dialog" aria-label="Command palette">
+  <input id="cmdk-input" placeholder="Go to, search accounts, run an action" autocomplete="off">
+  <ul id="cmdk-list">
+    <li><button type="button" data-go="overview">Overview<span>G O</span></button></li>
+    <li><button type="button" data-go="accounts">Accounts<span>G A</span></button></li>
+    <li><button type="button" data-go="clients">Clients<span>G C</span></button></li>
+    <li><button type="button" data-go="usage">Usage<span>G U</span></button></li>
+    <li><button type="button" data-go="settings">Settings<span>⌘,</span></button></li>
+    <li><button type="button" data-go="accounts">Add Claude account</button></li>
+    <li><button type="button" data-go="overview">Switch order to manual</button></li>
+    <li><button type="button">Restart core</button></li>
+    <li><button type="button">Copy base URL</button></li>
+  </ul>
+</div>
+
+<script>
+(function () {
+  const app = document.getElementById('app');
+  const views = document.querySelectorAll('.page[data-view]');
+
+  function go(page, sect) {
+    document.querySelectorAll('.nav [data-page]').forEach(function (b) {
+      if (b.dataset.page === page) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    views.forEach(function (v) {
+      const show = v.dataset.view === page;
+      v.hidden = !show;
+      if (show) { v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); }
+    });
+    if (sect) showSect(sect);
+    document.getElementById('main').scrollTop = 0;
+  }
+  document.querySelectorAll('.nav [data-page]').forEach(function (b) { b.addEventListener('click', function () { go(b.dataset.page); }); });
+  document.querySelectorAll('[data-go]').forEach(function (b) {
+    b.addEventListener('click', function () { go(b.dataset.go, b.dataset.sect); closeAll(); });
+  });
+
+  // Sidebar: manual collapse; narrow windows auto-collapse to the rail unless pinned open.
+  document.getElementById('collapse').addEventListener('click', function () {
+    if (window.innerWidth <= 1080) { app.classList.toggle('pinned'); app.classList.toggle('rail', !app.classList.contains('pinned')); }
+    else app.classList.toggle('rail');
+  });
+  function syncRail() { if (window.innerWidth <= 1080 && !app.classList.contains('pinned')) app.classList.add('rail'); }
+  window.addEventListener('resize', syncRail); syncRail();
+
+  // Tabs (generic)
+  document.querySelectorAll('[data-tabs]').forEach(function (group) {
+    group.querySelectorAll('[role="tab"]').forEach(function (t) {
+      t.addEventListener('click', function () {
+        group.querySelectorAll('[role="tab"]').forEach(function (x) { x.setAttribute('aria-selected', String(x === t)); });
+        const kind = group.dataset.tabs;
+        if (kind === 'sheet') document.querySelectorAll('[data-sheet-tab]').forEach(function (p) { p.hidden = p.dataset.sheetTab !== t.dataset.tab; });
+        if (kind === 'usage') {
+          const key = t.dataset.tab === 'overview' || t.dataset.tab === 'requests' ? t.dataset.tab : 'other';
+          document.querySelectorAll('[data-usage]').forEach(function (p) { p.hidden = p.dataset.usage !== key; });
+        }
+      });
+    });
+  });
+
+  // Segmented controls
+  document.querySelectorAll('.seg').forEach(function (seg) {
+    seg.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () { seg.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); });
+    });
+  });
+
+  // Order: automatic or manual drag
+  const order = document.getElementById('order');
+  const note = document.getElementById('order-note');
+  document.querySelectorAll('[data-mode]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      const manual = b.dataset.mode === 'manual';
+      order.classList.toggle('manual', manual);
+      order.querySelectorAll('.acct-row:not(.head)').forEach(function (r) { r.draggable = manual; });
+      note.textContent = manual
+        ? 'Manual: drag rows to set the order. New sessions use the first account with room.'
+        : 'Automatic: soonest weekly reset first. Skips accounts at 85% of 5 hour or 95% of week. Sessions already on an account stay there.';
+    });
+  });
+  let dragged = null;
+  order.addEventListener('dragstart', function (e) { dragged = e.target.closest('.acct-row'); dragged.classList.add('dragging'); });
+  order.addEventListener('dragover', function (e) {
+    const row = e.target.closest('.acct-row:not(.head)');
+    if (!dragged || !row || row === dragged) return;
+    e.preventDefault();
+    order.querySelectorAll('.over').forEach(function (r) { r.classList.remove('over'); });
+    row.classList.add('over');
+  });
+  order.addEventListener('drop', function (e) {
+    const row = e.target.closest('.acct-row:not(.head)');
+    if (!dragged || !row || row === dragged) return;
+    e.preventDefault(); order.insertBefore(dragged, row);
+  });
+  order.addEventListener('dragend', function () {
+    if (dragged) dragged.classList.remove('dragging');
+    order.querySelectorAll('.over').forEach(function (r) { r.classList.remove('over'); });
+    order.querySelectorAll('.acct-row:not(.head) .rank').forEach(function (r, i) { r.textContent = String(i + 1); });
+    dragged = null;
+  });
+
+  // Popovers
+  function toggle(btn, pop) {
+    btn.addEventListener('click', function (e) { e.stopPropagation(); const open = !pop.classList.contains('open'); closePops(); pop.classList.toggle('open', open); });
+  }
+  function closePops() { document.querySelectorAll('.pop.open').forEach(function (p) { p.classList.remove('open'); }); }
+  toggle(document.getElementById('add-btn'), document.getElementById('add-pop'));
+  toggle(document.getElementById('core-btn'), document.getElementById('core-pop'));
+  document.addEventListener('click', closePops);
+
+  // Sheet
+  const sheet = document.getElementById('sheet'), scrim = document.getElementById('scrim');
+  document.querySelectorAll('[data-sheet]').forEach(function (row) {
+    row.addEventListener('click', function () {
+      document.getElementById('s-title').textContent = row.dataset.sheet;
+      document.getElementById('s-email').textContent = row.dataset.email;
+      sheet.classList.add('open'); scrim.classList.add('open'); sheet.setAttribute('aria-hidden', 'false');
+    });
+  });
+  function closeSheet() { sheet.classList.remove('open'); scrim.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true'); }
+  scrim.addEventListener('click', closeSheet);
+  document.getElementById('s-close').addEventListener('click', closeSheet);
+
+  // Settings sections
+  function showSect(id) {
+    document.querySelectorAll('.snav [data-sect]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.sect === id)); });
+    const known = ['routing', 'network', 'updates'];
+    document.querySelectorAll('[data-sect-view]').forEach(function (s) { s.hidden = s.dataset.sectView !== (known.includes(id) ? id : 'other'); });
+    if (!known.includes(id)) {
+      const label = document.querySelector('.snav [data-sect="' + id + '"]');
+      document.getElementById('other-title').textContent = label ? label.textContent : 'Section';
+    }
+  }
+  document.querySelectorAll('.snav [data-sect]').forEach(function (b) { b.addEventListener('click', function () { showSect(b.dataset.sect); }); });
+
+  // Clients list selection
+  document.querySelectorAll('.client').forEach(function (c) {
+    c.addEventListener('click', function () { document.querySelectorAll('.client').forEach(function (x) { x.setAttribute('aria-selected', String(x === c)); }); });
+  });
+
+  // Switches
+  document.querySelectorAll('.switch').forEach(function (s) {
+    s.addEventListener('click', function () { s.setAttribute('aria-checked', String(s.getAttribute('aria-checked') !== 'true')); });
+  });
+
+  // Command palette
+  const cmdk = document.getElementById('cmdk'), cmdkScrim = document.getElementById('cmdk-scrim'), input = document.getElementById('cmdk-input');
+  function openCmdk() { cmdk.classList.add('open'); cmdkScrim.classList.add('open'); input.value = ''; filter(''); setTimeout(function () { input.focus(); }, 0); }
+  function closeCmdk() { cmdk.classList.remove('open'); cmdkScrim.classList.remove('open'); }
+  function filter(q) {
+    let first = true;
+    document.querySelectorAll('#cmdk-list li').forEach(function (li) {
+      const hit = li.textContent.toLowerCase().includes(q.toLowerCase());
+      li.hidden = !hit;
+      li.querySelector('button').setAttribute('aria-selected', String(hit && first));
+      if (hit) first = false;
+    });
+  }
+  input.addEventListener('input', function () { filter(input.value); });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { const sel = document.querySelector('#cmdk-list button[aria-selected="true"]'); if (sel) sel.click(); }
+  });
+  document.getElementById('open-cmdk').addEventListener('click', openCmdk);
+  cmdkScrim.addEventListener('click', closeCmdk);
+  function closeAll() { closeCmdk(); closeSheet(); closePops(); }
+  document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openCmdk(); }
+    if ((e.metaKey || e.ctrlKey) && e.key === '\\') { e.preventDefault(); document.getElementById('collapse').click(); }
+    if (e.key === 'Escape') closeAll();
+  });
+})();
+</script>
+</body>
+</html>

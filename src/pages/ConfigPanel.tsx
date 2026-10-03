@@ -81,7 +81,7 @@ type ConfigAction =
   | 'tls'
   | 'software'
   | null;
-type ConfigSubpage = 'general' | 'network' | 'routing' | 'software' | 'aliases' | 'sensitive-words';
+export type ConfigSubpage = 'general' | 'network' | 'routing' | 'software' | 'aliases' | 'sensitive-words';
 const CONFIG_SUBPAGES: readonly ConfigSubpage[] = ['general', 'network', 'routing', 'aliases', 'software', 'sensitive-words'];
 type CloseBehavior = 'ask' | 'exit' | 'minimize-to-tray';
 type NetworkDraftField =
@@ -139,7 +139,11 @@ const ROUTING_OPTIONS = [
   { value: 'fill-first', labelKey: 'config.routing.fillFirst' },
 ] as const;
 
-export function ConfigPanelPage() {
+/**
+ * Advanced settings. Standalone it shows its own header and tab bar; with `section`
+ * set it renders just that section so the Settings page can drive navigation.
+ */
+export function ConfigPanelPage({ section }: { section?: ConfigSubpage } = {}) {
   const { t } = useI18n();
   const { status: coreStatus, publishStatus, refreshStatus } = useCoreRuntime();
   const [settings, setSettings] = useState<CoreConfigSettings | null>(null);
@@ -193,8 +197,14 @@ export function ConfigPanelPage() {
   const renderFeedback = (feedback: ReturnType<typeof useAppNotice>) => (
     <FloatingNotice key={feedback.revision} notice={feedback.notice} onDismiss={feedback.clearNotice} />
   );
-  const [activeSubpage, setActiveSubpage] = useState<ConfigSubpage>('general');
-  const [sensitiveWordsVisited, setSensitiveWordsVisited] = useState(false);
+  const [activeSubpage, setActiveSubpage] = useState<ConfigSubpage>(section ?? 'general');
+  // The sensitive-words panel mounts lazily on first visit, including visits driven by `section`.
+  const [sensitiveWordsVisited, setSensitiveWordsVisited] = useState(section === 'sensitive-words');
+  useEffect(() => {
+    if (!section) return;
+    setActiveSubpage(section);
+    if (section === 'sensitive-words') setSensitiveWordsVisited(true);
+  }, [section]);
   const [portDraft, setPortDraft] = useState('8317');
   const [hostDraft, setHostDraft] = useState('127.0.0.1');
   const [proxyUrlDraft, setProxyUrlDraft] = useState('');
@@ -984,6 +994,8 @@ export function ConfigPanelPage() {
 
   return (
     <section className="page config-page">
+      {section ? null : (
+        <>
       <header className="management-header config-page-header">
         <div><h1>{t('app.nav.config')}</h1></div>
       </header>
@@ -1067,6 +1079,8 @@ export function ConfigPanelPage() {
           {t('config.tabs.sensitiveWords')}
         </button>
       </div>
+        </>
+      )}
 
       {activeSubpage === 'general' ? (
         <div

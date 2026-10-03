@@ -1101,7 +1101,7 @@ fn runtime_network_patch_preserves_comments_and_other_settings() {
 #[test]
 fn runtime_network_patch_skips_unchanged_yaml() {
     let config = GuiConfigFile::default();
-    let input = "host: 127.0.0.1\nport: 8317\n";
+    let input = "host: 127.0.0.1\nport: 8327\n";
 
     assert!(patch_core_network_yaml(input, &config).unwrap().is_none());
 }
@@ -1529,7 +1529,7 @@ fn v8_settings_can_populate_null_sections_without_losing_siblings() {
     let input = "config-version: 8\nserver: null\nmanagement: null\naccess: null\noauth: null\nrequests: null\nrouting: null\nobservability: null\nplugins: null\napi-keys: {codex: [{name: keep, keys: [{api-key: test-key}]}]}\n";
     let updated = apply_gui_managed_settings(input, &GuiConfigFile::default()).unwrap();
     let document: serde_norway::Value = serde_norway::from_str(&updated).unwrap();
-    assert_eq!(document["server"]["port"], 8317);
+    assert_eq!(document["server"]["port"], 8327);
     assert_eq!(document["api-keys"]["codex"][0]["name"], "keep");
     assert!(apply_gui_managed_settings("config-version: 8\nrequests: broken\n", &GuiConfigFile::default()).is_err());
 }
@@ -2072,11 +2072,13 @@ fn startup_merge_without_current_config_uses_gui_defaults() {
         document["host"],
         serde_norway::Value::String("127.0.0.1".to_string())
     );
-    assert_eq!(document["port"], serde_norway::to_value(8317_u16).unwrap());
+    assert_eq!(document["port"], serde_norway::to_value(8327_u16).unwrap());
     assert_eq!(document["debug"], serde_norway::Value::Bool(false));
     assert_eq!(document["api-keys"][0], DEFAULT_API_KEY, "{merged}");
     assert_eq!(document["plugins"]["enabled"], false);
-    assert_eq!(document["routing"]["strategy"], "round-robin");
+    assert_eq!(document["routing"]["strategy"], "fill-first");
+    // Legacy-format template: the core maps this root key to routing.cooldown.save-cooldown-status.
+    assert_eq!(document["save-cooldown-status"], true);
     assert_eq!(document["commercial-mode"], false);
     assert_eq!(document["logging-to-file"], false);
     assert_eq!(document["logs-max-total-size-mb"], 0);
@@ -2108,4 +2110,12 @@ fn startup_merge_can_shrink_template_api_key_sequence() {
         document["remote-management"]["secret-key"],
         config.management_secret_key
     );
+}
+
+#[test]
+fn v8_config_persists_cooldown_status() {
+    let input = "config-version: 8\nrouting:\n  cooldown:\n    save-cooldown-status: false\n";
+    let updated = apply_gui_managed_settings(input, &GuiConfigFile::default()).unwrap();
+    let document: serde_norway::Value = serde_norway::from_str(&updated).unwrap();
+    assert_eq!(document["routing"]["cooldown"]["save-cooldown-status"], true);
 }

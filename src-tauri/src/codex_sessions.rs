@@ -1,3 +1,4 @@
+use crate::agents::{agent_config_live, agent_home_dir};
 use base64::Engine;
 use chrono::Utc;
 use rusqlite::types::ValueRef;
@@ -14,7 +15,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tauri::{Emitter, Manager};
+use tauri::Emitter;
 
 const DEFAULT_PAGE_SIZE: usize = 50;
 const MAX_PAGE_SIZE: usize = 100;
@@ -194,9 +195,7 @@ pub(crate) async fn list_codex_sessions(
     app: tauri::AppHandle,
     request: Option<ListCodexSessionsRequest>,
 ) -> Result<CodexSessionPage, String> {
-    let user_home = app
-        .path()
-        .home_dir()
+    let user_home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let codex_home = resolve_codex_home(&user_home);
     let request = request.unwrap_or(ListCodexSessionsRequest {
@@ -215,9 +214,7 @@ pub(crate) async fn delete_codex_sessions(
     app: tauri::AppHandle,
     request: DeleteCodexSessionsRequest,
 ) -> Result<CodexSessionDeleteBatchResult, String> {
-    let user_home = app
-        .path()
-        .home_dir()
+    let user_home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let codex_home = resolve_codex_home(&user_home);
     tauri::async_runtime::spawn_blocking(move || {
@@ -231,9 +228,7 @@ pub(crate) async fn delete_codex_sessions(
 pub(crate) async fn repair_codex_session_metadata(
     app: tauri::AppHandle,
 ) -> Result<CodexSessionRepairResult, String> {
-    let user_home = app
-        .path()
-        .home_dir()
+    let user_home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let codex_home = resolve_codex_home(&user_home);
     let progress_app = app.clone();
@@ -251,9 +246,7 @@ pub(crate) async fn repair_codex_session_metadata(
 pub(crate) async fn preview_codex_session_index_cleanup(
     app: tauri::AppHandle,
 ) -> Result<SessionIndexCleanupPreview, String> {
-    let user_home = app
-        .path()
-        .home_dir()
+    let user_home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let codex_home = resolve_codex_home(&user_home);
     tauri::async_runtime::spawn_blocking(move || {
@@ -268,9 +261,7 @@ pub(crate) async fn apply_codex_session_index_cleanup(
     app: tauri::AppHandle,
     request: ApplySessionIndexCleanupRequest,
 ) -> Result<SessionIndexCleanupResult, String> {
-    let user_home = app
-        .path()
-        .home_dir()
+    let user_home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let codex_home = resolve_codex_home(&user_home);
     tauri::async_runtime::spawn_blocking(move || {
@@ -294,6 +285,9 @@ fn resolve_sqlite_home(codex_home: &Path) -> PathBuf {
 }
 
 fn existing_env_directory(name: &str) -> Option<PathBuf> {
+    if !agent_config_live() {
+        return None;
+    }
     let path = std::env::var_os(name).map(PathBuf::from)?;
     (!path.as_os_str().is_empty() && path.is_dir()).then_some(path)
 }

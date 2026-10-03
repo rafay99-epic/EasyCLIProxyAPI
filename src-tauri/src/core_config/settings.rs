@@ -381,6 +381,12 @@ pub(crate) fn patch_core_network_routing_yaml(
         )?;
         set_core_yaml_schema_value(
             document,
+            &["save-cooldown-status"],
+            &["routing", "cooldown", "save-cooldown-status"],
+            serde_norway::Value::Bool(true),
+        )?;
+        set_core_yaml_schema_value(
+            document,
             &["request-retry"],
             &["routing", "retry", "request-retry"],
             serde_norway::to_value(config.request_retry)
@@ -439,6 +445,12 @@ pub(crate) fn patch_core_retry_yaml(
             &["disable-cooling"],
             &["routing", "cooldown", "disable-cooling"],
             serde_norway::Value::Bool(config.disable_cooling),
+        )?;
+        set_core_yaml_schema_value(
+            document,
+            &["save-cooldown-status"],
+            &["routing", "cooldown", "save-cooldown-status"],
+            serde_norway::Value::Bool(true),
         )?;
         set_core_yaml_schema_value(
             document,
@@ -642,6 +654,13 @@ pub(crate) fn apply_gui_managed_settings(
             &["disable-cooling"],
             &["routing", "cooldown", "disable-cooling"],
             serde_norway::Value::Bool(config.disable_cooling),
+        )?;
+        // Restarts must remember which accounts are capped instead of re-hitting them.
+        changed |= set_core_yaml_schema_value(
+            document,
+            &["save-cooldown-status"],
+            &["routing", "cooldown", "save-cooldown-status"],
+            serde_norway::Value::Bool(true),
         )?;
         changed |= set_core_yaml_schema_value(
             document,

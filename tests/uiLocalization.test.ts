@@ -26,10 +26,16 @@ const technicalPlaceholders = new Set([
   'socks5://127.0.0.1:1080',
 ]);
 
+// CPA Desk's own shell and pages are English-only by design (the fork dropped the
+// language switcher); upstream components keep their translation boundaries.
+const forkOnly = new Set(['desk']);
+const forkOnlyFiles = new Set(['App.tsx', 'AgentConfigTargetNotice.tsx']);
+
 function componentFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
-    if (entry.isDirectory()) return entry.name === 'i18n' ? [] : componentFiles(path);
+    if (entry.isDirectory()) return entry.name === 'i18n' || forkOnly.has(entry.name) ? [] : componentFiles(path);
+    if (forkOnlyFiles.has(entry.name)) return [];
     return entry.name.endsWith('.tsx') ? [path] : [];
   });
 }

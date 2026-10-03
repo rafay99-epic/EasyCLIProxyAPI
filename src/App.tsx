@@ -1,555 +1,368 @@
+// CPA Desk shell: collapsible sidebar (auto rail under 1080px, ⌘\ toggles), ⌘K command
+// palette, core status menu, and five pages. The routing controller is mounted here so
+// account priorities stay current while the window is hidden.
+
 import { MessageNotice } from './appNotice';
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import {
-  Bot,
-  Check,
-  ChevronUp,
-  ExternalLink,
-  History,
-  House,
-  Languages,
-  Lock,
-  LogIn,
-  MessageCircle,
-  Network,
-  PackageOpen,
-  ServerCog,
-  Settings,
-  X,
-} from 'lucide-react';
-import appLogo from './assets/logo.jpg';
-import { CoreRuntimeProvider, useCoreRuntime } from './coreRuntime';
+import { BarChart3, Gauge, PanelLeft, Plug, Search, Settings, Users, X } from 'lucide-react';
+import { CoreRuntimeProvider, useCoreRuntime, type CoreStatus } from './coreRuntime';
 import { CoreUpdateProvider, useCoreUpdate } from './coreUpdate';
-import { ConfigPanelPage } from './pages/ConfigPanel';
-import { ApiAccessPage } from './pages/ApiAccessPage';
-import { KernelPage } from './pages/Kernel';
-import { VersionManagementPage } from './pages/VersionManagementPage';
-import { OAuthManagementPage } from './pages/ManagementPages';
-import { AgentsPage } from './pages/AgentsPage';
-import { EasyModePage } from './pages/EasyModePage';
-import { UsageRecordsPage } from './pages/UsageRecordsPage';
-import { languageOptions, useI18n } from './i18n';
 import { AppUpdateDialog, AppUpdateProvider, useAppUpdate } from './appUpdate';
 import { appUpdateIndicatorState } from './appUpdateModel';
-import { canOpenAppPage, isAlwaysAvailablePage } from './navigation';
-import { useThemePreference } from './theme';
+import { canOpenAppPage } from './navigation';
+import { DeskNavProvider, useDeskNav, type DeskPage, type SettingsSection } from './deskNav';
 import { useDialogFocusTrap } from './components/useDialogFocusTrap';
+import { CommandPalette, type Command } from './components/desk/CommandPalette';
+import { shortName } from './components/desk/ui';
+import { runRoutingTick, useRoutingController, useRoutingState } from './services/routingController';
+import { useI18n } from './i18n';
+import { OverviewView } from './pages/desk/OverviewView';
+import { AccountsView } from './pages/desk/AccountsView';
+import { ClientsView } from './pages/desk/ClientsView';
+import { SettingsView } from './pages/desk/SettingsView';
+import { UsageRecordsPage } from './pages/UsageRecordsPage';
 
-const QQ_CONTACT_URL = 'https://qm.qq.com/q/3queDaIG';
-const DISCORD_SERVER_URL = 'https://discord.gg/PxvX4D9kgs';
+type PageDef = { id: DeskPage; label: string; icon: ComponentType<{ className?: string }>; view: ComponentType; wide?: boolean };
 
-const pages = [
-  {
-    id: 'easy',
-    labelKey: 'app.nav.easy',
-    icon: House,
-    component: HomePage,
-  },
-  {
-    id: 'home',
-    labelKey: 'app.nav.home',
-    icon: House,
-    component: HomePage,
-  },
-  {
-    id: 'api',
-    labelKey: 'app.nav.api',
-    icon: Network,
-    component: ApiAccessPage,
-  },
-  {
-    id: 'oauth',
-    labelKey: 'app.nav.oauth',
-    icon: LogIn,
-    component: OAuthManagementPage,
-  },
-  {
-    id: 'agents',
-    labelKey: 'app.nav.agents',
-    icon: Bot,
-    component: AgentsPage,
-  },
-  {
-    id: 'usage-records',
-    labelKey: 'app.nav.usageRecords',
-    icon: History,
-    component: UsageRecordsPage,
-  },
-  {
-    id: 'config',
-    labelKey: 'app.nav.config',
-    icon: Settings,
-    component: ConfigPanelPage,
-  },
-  {
-    id: 'versions',
-    labelKey: 'app.nav.versions',
-    icon: PackageOpen,
-    component: VersionManagementPageWrapper,
-  },
-] as const;
+function UsageView() {
+  return <div className="d-embed d-embed-usage"><UsageRecordsPage /></div>;
+}
 
-type PageId = (typeof pages)[number]['id'];
+const pages: PageDef[] = [
+  { id: 'overview', label: 'Overview', icon: Gauge, view: OverviewView },
+  { id: 'accounts', label: 'Accounts', icon: Users, view: AccountsView },
+  { id: 'clients', label: 'Clients', icon: Plug, view: ClientsView, wide: true },
+  { id: 'usage', label: 'Usage', icon: BarChart3, view: UsageView, wide: true },
+  { id: 'settings', label: 'Settings', icon: Settings, view: SettingsView },
+];
+
+const settingsCommands: { id: SettingsSection; label: string }[] = [
+  { id: 'routing', label: 'Routing' },
+  { id: 'network', label: 'Network' },
+  { id: 'general', label: 'Access keys' },
+  { id: 'aliases', label: 'Model aliases' },
+  { id: 'sensitive-words', label: 'Prompt filters' },
+  { id: 'software', label: 'General' },
+  { id: 'core', label: 'Core' },
+  { id: 'versions', label: 'Versions' },
+];
+
+type CoreCommand = 'start_core_process' | 'stop_core_process' | 'restart_core_process';
 type WindowsCloseAction = 'exit' | 'minimize-to-tray';
-type WindowsCloseBehavior = 'ask' | WindowsCloseAction;
+type WindowsClosePrompt = { resolvingAction: WindowsCloseAction | null; rememberChoice: boolean; error: string | null };
 
-type WindowsClosePrompt = {
-  resolvingAction: WindowsCloseAction | null;
-  rememberChoice: boolean;
-  error: string | null;
-};
-
-type GuiSettings = {
-  closeBehavior: WindowsCloseBehavior;
-};
-
-function HomePage() {
-  return <KernelPage view="home" />;
-}
-
-function VersionManagementPageWrapper() {
-  return <VersionManagementPage />;
-}
+const SIDEBAR_KEY = 'cpa-desk.sidebar-rail';
+const RAIL_BELOW_PX = 1080;
 
 function App() {
   return (
     <AppUpdateProvider>
       <CoreRuntimeProvider>
         <CoreUpdateProvider>
-          <AppContent />
+          <DeskNavProvider>
+            <AppContent />
+          </DeskNavProvider>
         </CoreUpdateProvider>
       </CoreRuntimeProvider>
     </AppUpdateProvider>
   );
 }
 
-function AppContent() {
-  const { locale, setLocale, t } = useI18n();
-  const { info: appUpdateInfo, hasUpdate, processing: appUpdateProcessing } = useAppUpdate();
-  const { latest: coreLatest, hasUpdate: coreHasUpdate } = useCoreUpdate();
-  const [active, setActive] = useState<PageId>('home');
-  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
-  const [theme, setTheme] = useThemePreference();
-  const [windowsClosePrompt, setWindowsClosePrompt] = useState<WindowsClosePrompt | null>(null);
-  const closeDialogRef = useDialogFocusTrap<HTMLElement>({
-    active: Boolean(windowsClosePrompt),
-    onEscape: windowsClosePrompt?.resolvingAction
-      ? undefined
-      : () => setWindowsClosePrompt(null),
-    preventEscape: Boolean(windowsClosePrompt?.resolvingAction),
+/** Rail when the user chose it, else automatically on narrow windows. */
+function useSidebarRail() {
+  const [preference, setPreference] = useState<boolean | null>(() => {
+    const stored = window.localStorage.getItem(SIDEBAR_KEY);
+    return stored === null ? null : stored === 'true';
   });
-  const languageMenuRef = useRef<HTMLDivElement>(null);
-  const languageButtonRef = useRef<HTMLButtonElement>(null);
-  const { status } = useCoreRuntime();
-  const coreReady = Boolean(status?.ready);
-  const activePage = pages.find((page) => page.id === active) ?? pages[0];
-  const ActivePage = activePage.component;
-  const selectedLanguage = languageOptions.find((option) => option.value === locale)
-    ?? languageOptions[0];
-  const availableUpdateLabel = [
-    hasUpdate
-      ? t('appUpdate.badgeAvailable', { version: appUpdateInfo?.latestVersion ?? '' })
-      : '',
-    coreHasUpdate
-      ? `${t('kernel.versions.coreCardTitle')}: ${t('kernel.update.available')} ${coreLatest?.version ?? ''}`.trim()
-      : '',
-  ].filter(Boolean).join(' · ');
+  const [narrow, setNarrow] = useState(() => window.innerWidth < RAIL_BELOW_PX);
   useEffect(() => {
-    if (!canOpenAppPage(active, coreReady)) {
-      setActive('home');
+    const query = window.matchMedia(`(max-width: ${RAIL_BELOW_PX - 1}px)`);
+    const update = () => {
+      setNarrow(query.matches);
+      // Crossing the breakpoint hands control back to the automatic behaviour.
+      setPreference(null);
+      window.localStorage.removeItem(SIDEBAR_KEY);
+    };
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  const rail = preference ?? narrow;
+  const toggle = useCallback(() => {
+    const next = !rail;
+    setPreference(next);
+    window.localStorage.setItem(SIDEBAR_KEY, String(next));
+  }, [rail]);
+  return [rail, toggle] as const;
+}
+
+function useCoreControl() {
+  const { status, publishStatus, refreshStatus } = useCoreRuntime();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const run = useCallback(async (command: CoreCommand) => {
+    setBusy(true);
+    setError('');
+    try {
+      publishStatus(await invoke<CoreStatus>(command));
+    } catch (commandError) {
+      setError(String(commandError));
+      await refreshStatus();
+    } finally {
+      setBusy(false);
     }
-  }, [active, coreReady]);
+  }, [publishStatus, refreshStatus]);
+  return { status, busy: busy || Boolean(status?.starting), error, clearError: () => setError(''), run };
+}
+
+function CoreMenu({ rail, control, onGo }: {
+  rail: boolean;
+  control: ReturnType<typeof useCoreControl>;
+  onGo: (section: SettingsSection) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [port, setPort] = useState<number | null>(null);
+  const { status, busy, run } = control;
+  const { hasUpdate: coreHasUpdate } = useCoreUpdate();
+  const { hasUpdate: appHasUpdate, processing } = useAppUpdate();
+  const indicator = appUpdateIndicatorState(appHasUpdate, coreHasUpdate, processing);
 
   useEffect(() => {
-    if (!languageMenuOpen) return undefined;
-    const closeFromOutside = (event: PointerEvent) => {
-      if (!languageMenuRef.current?.contains(event.target as Node)) {
-        setLanguageMenuOpen(false);
+    void invoke<{ port: number }>('get_gui_settings').then((settings) => setPort(settings.port)).catch(() => setPort(null));
+  }, [status?.running]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  const tone = status?.ready ? 'd-ok' : status?.starting || (status?.running && !status.ready) ? 'd-warn' : status ? '' : 'd-bad';
+  const label = !status
+    ? 'Core unknown'
+    : status.starting ? 'Core starting'
+      : status.ready ? `Core running${port ? ` · ${port}` : ''}`
+        : status.running ? 'Core not ready'
+          : status.installed ? 'Core stopped' : 'Core not installed';
+  const act = (action: () => void) => { setOpen(false); action(); };
+
+  return (
+    <div className="d-side-foot">
+      <button type="button" className="d-core-btn" aria-haspopup="menu" aria-expanded={open} title={rail ? label : undefined}
+        onClick={() => setOpen((value) => !value)}>
+        <span className={`d-dot ${tone}`} />
+        <span className="d-label">{label}</span>
+        {indicator ? <span className="d-label d-t3" style={{ marginLeft: 'auto' }}>{indicator === 'processing' ? 'Updating' : 'Update'}</span> : null}
+      </button>
+      {open ? (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 24 }} onClick={() => setOpen(false)} />
+          <div className="d-pop" role="menu" style={{ bottom: 40, left: 0, transformOrigin: 'bottom left' }}>
+            <div className="d-lbl">
+              {status?.currentVersion ? `Core ${status.currentVersion}` : 'Core'}
+              {status?.processId ? ` · PID ${status.processId}` : ''}
+            </div>
+            {status?.running ? (
+              <>
+                <button type="button" role="menuitem" disabled={busy} onClick={() => act(() => void run('restart_core_process'))}>Restart core</button>
+                <button type="button" role="menuitem" disabled={busy} onClick={() => act(() => void run('stop_core_process'))}>Stop core</button>
+              </>
+            ) : (
+              <button type="button" role="menuitem" disabled={busy || !status?.installed} onClick={() => act(() => void run('start_core_process'))}>Start core</button>
+            )}
+            <div className="d-sep" />
+            <button type="button" role="menuitem" onClick={() => act(() => onGo('versions'))}>
+              Versions and updates{indicator === 'available' ? <span className="d-t3" style={{ marginLeft: 'auto' }}>New</span> : null}
+            </button>
+            <button type="button" role="menuitem" onClick={() => act(() => onGo('core'))}>Core settings</button>
+            <button type="button" role="menuitem" onClick={() => act(() => void invoke('open_core_logs_directory').catch(() => undefined))}>Open logs folder</button>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function CoreRequired({ control }: { control: ReturnType<typeof useCoreControl> }) {
+  const { status, busy, run } = control;
+  return (
+    <>
+      <div className="d-ph"><h1>Accounts</h1></div>
+      <div className="d-notice d-warn">
+        <span>{status?.installed ? 'Start the proxy core to manage accounts.' : 'Install the proxy core from Settings, Versions.'}</span>
+        {status?.installed ? (
+          <button type="button" className="d-btn" style={{ marginLeft: 'auto' }} disabled={busy} onClick={() => void run('start_core_process')}>
+            {busy ? 'Starting' : 'Start core'}
+          </button>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+function AppContent() {
+  const { t } = useI18n();
+  const { page, go, visit } = useDeskNav();
+  const control = useCoreControl();
+  const coreReady = Boolean(control.status?.ready);
+  const routing = useRoutingState();
+  const [rail, toggleRail] = useSidebarRail();
+  const [palette, setPalette] = useState(false);
+  const [closePrompt, setClosePrompt] = useState<WindowsClosePrompt | null>(null);
+  useRoutingController(coreReady);
+
+  const current = pages.find((item) => item.id === page) ?? pages[0];
+  const View = current.view;
+
+  // Global shortcuts: ⌘K palette, ⌘\ sidebar, ⌘1-5 pages.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+      if (event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setPalette((value) => !value);
+      } else if (event.key === '\\') {
+        event.preventDefault();
+        toggleRail();
+      } else if (/^[1-5]$/.test(event.key)) {
+        const target = pages[Number(event.key) - 1];
+        if (target && canOpenAppPage(target.id, coreReady)) {
+          event.preventDefault();
+          go(target.id);
+        }
       }
     };
-    const closeFromKeyboard = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      setLanguageMenuOpen(false);
-      languageButtonRef.current?.focus();
-    };
-    document.addEventListener('pointerdown', closeFromOutside);
-    document.addEventListener('keydown', closeFromKeyboard);
-    return () => {
-      document.removeEventListener('pointerdown', closeFromOutside);
-      document.removeEventListener('keydown', closeFromKeyboard);
-    };
-  }, [languageMenuOpen]);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [coreReady, go, toggleRail]);
 
+  const commands = useMemo<Command[]>(() => [
+    ...pages.map((item, index) => ({ id: `page-${item.id}`, label: item.label, hint: `⌘${index + 1}`, run: () => go(item.id) })),
+    ...settingsCommands.map((item) => ({
+      id: `settings-${item.id}`, label: `Settings: ${item.label}`, run: () => go('settings', { settingsSection: item.id }),
+    })),
+    ...routing.accounts.map((account) => ({
+      id: `account-${account.name}`, label: shortName(account.label), hint: account.label, run: () => go('accounts'),
+    })),
+    { id: 'sign-in', label: 'Add account', hint: 'Sign in', run: () => go('accounts', { signIn: true }) },
+    { id: 'api-keys', label: 'API keys', run: () => go('accounts', { accountsTab: 'keys' }) },
+    { id: 'refresh', label: 'Refresh limits', run: () => void runRoutingTick(true) },
+    { id: 'sidebar', label: 'Toggle sidebar', hint: '⌘\\', run: toggleRail },
+    control.status?.running
+      ? { id: 'restart', label: 'Restart core', run: () => void control.run('restart_core_process') }
+      : { id: 'start', label: 'Start core', run: () => void control.run('start_core_process') },
+  ].filter((command) => !command.id.startsWith('page-accounts') || coreReady), [control, coreReady, go, routing.accounts, toggleRail]);
+
+  // Windows only: the native close button asks whether to quit or hide to the tray.
   useEffect(() => {
     let disposed = false;
-    let stopListening: (() => void) | undefined;
-
-    const handleWindowsCloseRequest = async () => {
+    let stop: (() => void) | undefined;
+    void listen('windows-close-requested', async () => {
       try {
-        const settings = await invoke<GuiSettings>('get_gui_settings');
+        const settings = await invoke<{ closeBehavior: 'ask' | WindowsCloseAction }>('get_gui_settings');
         if (settings.closeBehavior !== 'ask') {
-          await resolveWindowsCloseRequest(settings.closeBehavior, false);
+          await invoke('resolve_windows_close_request', { action: settings.closeBehavior, remember: false });
           return;
         }
       } catch (error) {
         console.error('Failed to read close behavior settings', error);
       }
-
-      setWindowsClosePrompt((current) =>
-        current ?? {
-          resolvingAction: null,
-          rememberChoice: false,
-          error: null,
-        },
-      );
-    };
-
-    void listen('windows-close-requested', () => {
-      void handleWindowsCloseRequest();
-    })
-      .then((stop) => {
-        if (disposed) {
-          stop();
-        } else {
-          stopListening = stop;
-        }
-      })
-      .catch((error) => {
-        console.error('Failed to listen for Windows close confirmation events', error);
-      });
-
-    return () => {
-      disposed = true;
-      stopListening?.();
-    };
+      setClosePrompt((value) => value ?? { resolvingAction: null, rememberChoice: false, error: null });
+    }).then((unlisten) => { if (disposed) unlisten(); else stop = unlisten; }).catch(() => undefined);
+    return () => { disposed = true; stop?.(); };
   }, []);
 
-  const handleLanguageListKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
-    const options = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="option"]'));
-    if (!options.length) return;
-    const current = options.indexOf(document.activeElement as HTMLButtonElement);
-    const next = event.key === 'Home'
-      ? 0
-      : event.key === 'End'
-        ? options.length - 1
-        : event.key === 'ArrowDown'
-          ? (Math.max(current, -1) + 1) % options.length
-          : (current <= 0 ? options.length : current) - 1;
-    event.preventDefault();
-    options[next]?.focus();
-  };
-
-  const select = (pageId: PageId) => {
-    if (!canOpenAppPage(pageId, coreReady)) {
-      return;
-    }
-    setActive(pageId);
-  };
-
-  const openContact = async () => {
+  const resolveClose = async (action: WindowsCloseAction) => {
+    setClosePrompt((value) => (value ? { ...value, resolvingAction: action, error: null } : value));
     try {
-      await invoke('open_external_url', {
-        url: locale === 'zh-CN' ? QQ_CONTACT_URL : DISCORD_SERVER_URL,
-      });
+      await invoke('resolve_windows_close_request', { action, remember: closePrompt?.rememberChoice ?? false });
+      setClosePrompt(null);
     } catch (error) {
-      console.error('Failed to open the contact link', error);
+      setClosePrompt((value) => ({ resolvingAction: null, rememberChoice: value?.rememberChoice ?? false, error: String(error) }));
     }
   };
-
-  const resolveWindowsCloseRequest = async (
-    action: WindowsCloseAction,
-    remember = windowsClosePrompt?.rememberChoice ?? false,
-  ) => {
-    setWindowsClosePrompt((current) =>
-      current
-        ? {
-            ...current,
-            resolvingAction: action,
-            error: null,
-          }
-        : current,
-    );
-
-    try {
-      await invoke('resolve_windows_close_request', { action, remember });
-      setWindowsClosePrompt(null);
-    } catch (error) {
-      setWindowsClosePrompt((current) =>
-        current
-          ? {
-              ...current,
-              resolvingAction: null,
-              error: error instanceof Error ? error.message : String(error),
-            }
-          : {
-              resolvingAction: null,
-              rememberChoice: false,
-              error: error instanceof Error ? error.message : String(error),
-            },
-      );
-    }
-  };
+  const closeDialogRef = useDialogFocusTrap<HTMLElement>({
+    active: Boolean(closePrompt),
+    onEscape: closePrompt?.resolvingAction ? undefined : () => setClosePrompt(null),
+    preventEscape: Boolean(closePrompt?.resolvingAction),
+  });
 
   return (
-    <>
-      <div className={`app-shell${active === "easy" ? " app-shell-easy-mode" : ""}`}>
-        {active !== "easy" ? (
-          <aside className="sidebar">
-          <div className="sidebar-brand" title={t('app.desktopConsole')}>
-            <img src={appLogo} alt="" className="brand-mark brand-logo" />
-            <div>
-              <strong>EasyCLIProxyAPI</strong>
-              <span>{t('app.desktopConsole')}</span>
-            </div>
+    <div className="d-root">
+      <div className={`d-app${rail ? ' d-rail' : ''}`}>
+        <aside className="d-side" aria-label="Sidebar">
+          <div className="d-side-top">
+            <b>CPA Desk</b>
+            <button type="button" className="d-iconbtn" aria-label="Toggle sidebar" title="Toggle sidebar  ⌘\" onClick={toggleRail}>
+              <PanelLeft className="d-icon" aria-hidden="true" />
+            </button>
           </div>
-
-          <nav className="nav-section" aria-label={t('app.navigation')}>
-            {pages.filter((page) => page.id !== 'easy').map((page) => {
-              const Icon = page.icon;
-              const locked = !canOpenAppPage(page.id, coreReady);
-              const updateIndicator = page.id === 'versions'
-                ? appUpdateIndicatorState(hasUpdate, coreHasUpdate, appUpdateProcessing)
-                : null;
+          <button type="button" className="d-search" onClick={() => setPalette(true)} title={rail ? 'Search  ⌘K' : undefined}>
+            <Search className="d-icon" aria-hidden="true" /><span>Search</span><kbd className="d-kbd">⌘K</kbd>
+          </button>
+          <nav className="d-nav" aria-label="Main">
+            {pages.map((item) => {
+              const Icon = item.icon;
+              const locked = !canOpenAppPage(item.id, coreReady);
               return (
                 <button
-                  key={page.id}
+                  key={item.id}
                   type="button"
-                  className={[
-                    page.id === active ? 'active' : '',
-                    locked ? 'locked' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  disabled={locked}
-                  title={locked ? t('app.nav.lockedHint') : undefined}
-                  onClick={() => select(page.id)}
+                  data-label={item.label}
+                  aria-current={item.id === page ? 'page' : undefined}
+                  title={locked ? 'Start the core to open this page' : undefined}
+                  onClick={() => go(item.id)}
                 >
-                  <Icon size={17} aria-hidden="true" />
-                  <span>{t(page.labelKey)}</span>
-                  {locked ? (
-                    <Lock size={13} className="nav-lock-icon" aria-hidden="true" />
-                  ) : updateIndicator ? (
-                    <i
-                      className={`nav-update-indicator ${updateIndicator}`}
-                      title={updateIndicator === 'processing'
-                        ? t('appUpdate.progressTitle')
-                        : availableUpdateLabel}
-                      aria-label={updateIndicator === 'processing'
-                        ? t('appUpdate.progressTitle')
-                        : availableUpdateLabel}
-                    />
-                  ) : null}
+                  <Icon className="d-icon" aria-hidden="true" />
+                  <span className="d-label">{item.label}</span>
                 </button>
               );
             })}
           </nav>
+          <CoreMenu rail={rail} control={control} onGo={(section) => go('settings', { settingsSection: section })} />
+        </aside>
 
-          <div className="sidebar-bottom">
-            <button
-              type="button"
-              className="sidebar-easy-entry"
-              onClick={() => select('easy')}
-            >
-              <span>{t('app.nav.easy')}</span>
-            </button>
-            <div
-              className="sidebar-theme-selector"
-              role="group"
-              aria-label={t('app.theme.label')}
-            >
-              <button
-                type="button"
-                className={theme === 'light' ? 'active' : ''}
-                aria-pressed={theme === 'light'}
-                title={t('app.theme.switchToLight')}
-                onClick={() => setTheme('light')}
-              >
-                {t('app.theme.light')}
-              </button>
-              <button
-                type="button"
-                className={theme === 'dark' ? 'active' : ''}
-                aria-pressed={theme === 'dark'}
-                title={t('app.theme.switchToDark')}
-                onClick={() => setTheme('dark')}
-              >
-                {t('app.theme.dark')}
-              </button>
-              <button
-                type="button"
-                className={theme === 'system' ? 'active' : ''}
-                aria-pressed={theme === 'system'}
-                title={t('app.theme.switchToSystem')}
-                onClick={() => setTheme('system')}
-              >
-                {t('app.theme.system')}
-              </button>
+        <main className="d-main">
+          <div className={`d-page${current.wide ? ' d-wide' : ''}`}>
+            {control.error ? <MessageNotice message={control.error} onDismiss={control.clearError} /> : null}
+            <div className="d-enter" key={`${page}-${visit}`}>
+              {canOpenAppPage(current.id, coreReady) ? <View /> : <CoreRequired control={control} />}
             </div>
-            <div ref={languageMenuRef} className="sidebar-language">
-              <button
-                ref={languageButtonRef}
-                type="button"
-                className="sidebar-language-trigger"
-                aria-label={t('app.language')}
-                aria-haspopup="listbox"
-                aria-expanded={languageMenuOpen}
-                aria-controls="sidebar-language-list"
-                onClick={() => setLanguageMenuOpen((open) => !open)}
-                onKeyDown={(event) => {
-                  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-                  event.preventDefault();
-                  setLanguageMenuOpen(true);
-                  window.requestAnimationFrame(() => {
-                    const options = languageMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]');
-                    options?.[event.key === 'ArrowUp' ? options.length - 1 : 0]?.focus();
-                  });
-                }}
-              >
-                <Languages size={16} aria-hidden="true" />
-                <span lang={selectedLanguage.value}>{selectedLanguage.nativeLabel}</span>
-                <ChevronUp
-                  size={14}
-                  aria-hidden="true"
-                  className={languageMenuOpen ? 'expanded' : ''}
-                />
-              </button>
-              {languageMenuOpen ? (
-                <div
-                  id="sidebar-language-list"
-                  className="sidebar-language-list"
-                  role="listbox"
-                  aria-label={t('app.language')}
-                  onKeyDown={handleLanguageListKeyDown}
-                >
-                  {languageOptions.map((option) => {
-                    const selected = option.value === locale;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={selected ? 'selected' : ''}
-                        role="option"
-                        aria-selected={selected}
-                        onClick={() => {
-                          setLocale(option.value);
-                          setLanguageMenuOpen(false);
-                          window.requestAnimationFrame(() => languageButtonRef.current?.focus());
-                        }}
-                      >
-                        <span lang={option.value}>{option.nativeLabel}</span>
-                        {selected ? <Check size={14} aria-hidden="true" /> : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              className="sidebar-contact"
-              title={t('app.contact.title')}
-              onClick={() => void openContact()}
-            >
-              <MessageCircle size={16} aria-hidden="true" />
-              <span>{t('app.contact.label')}</span>
-              <ExternalLink size={13} aria-hidden="true" />
-            </button>
           </div>
-          </aside>
-        ) : null}
-
-        <div className="workspace">
-          <main className="content">
-            {isAlwaysAvailablePage(activePage.id) || coreReady ? (
-              activePage.id === 'easy' ? (
-                <EasyModePage
-                  onExit={() => select('home')}
-                  theme={theme}
-                  setTheme={setTheme}
-                  locale={locale}
-                  setLocale={setLocale}
-                />
-              ) : (
-                <ActivePage />
-              )
-            ) : (
-              <CoreLockedPage />
-            )}
-          </main>
-        </div>
+        </main>
       </div>
 
-      {windowsClosePrompt ? (
+      {palette ? <CommandPalette commands={commands} onClose={() => setPalette(false)} /> : null}
+
+      {closePrompt ? (
         <div className="close-dialog-backdrop">
-          <section
-            ref={closeDialogRef}
-            className="close-dialog"
-            role="alertdialog"
-            tabIndex={-1}
-            aria-modal="true"
-            aria-labelledby="close-dialog-title"
-            aria-describedby="close-dialog-description"
-          >
-            <button
-              type="button"
-              className="close-dialog-dismiss"
-              aria-label={t('common.cancel')}
-              title={t('common.cancel')}
-              disabled={windowsClosePrompt.resolvingAction !== null}
-              onClick={() => setWindowsClosePrompt(null)}
-            >
+          <section ref={closeDialogRef} className="close-dialog" role="alertdialog" tabIndex={-1} aria-modal="true"
+            aria-labelledby="close-dialog-title" aria-describedby="close-dialog-description">
+            <button type="button" className="close-dialog-dismiss" aria-label={t('common.cancel')} disabled={closePrompt.resolvingAction !== null}
+              onClick={() => setClosePrompt(null)}>
               <X size={17} aria-hidden="true" />
             </button>
-            <div className="close-dialog-heading">
-              <h2 id="close-dialog-title">{t('app.close.title')}</h2>
-            </div>
-            <p id="close-dialog-description">
-              {t('app.close.description')}
-            </p>
-            {windowsClosePrompt.error ? (
-              <MessageNotice message={windowsClosePrompt.error} onDismiss={() => setWindowsClosePrompt(current => current ? { ...current, error: null } : current)} />
-            ) : null}
+            <div className="close-dialog-heading"><h2 id="close-dialog-title">{t('app.close.title')}</h2></div>
+            <p id="close-dialog-description">{t('app.close.description')}</p>
+            {closePrompt.error ? <MessageNotice message={closePrompt.error} onDismiss={() => setClosePrompt((value) => (value ? { ...value, error: null } : value))} /> : null}
             <label className="close-dialog-remember">
-              <input
-                type="checkbox"
-                checked={windowsClosePrompt.rememberChoice}
-                disabled={windowsClosePrompt.resolvingAction !== null}
+              <input type="checkbox" checked={closePrompt.rememberChoice} disabled={closePrompt.resolvingAction !== null}
                 onChange={(event) => {
                   const rememberChoice = event.currentTarget.checked;
-                  setWindowsClosePrompt((current) =>
-                    current ? { ...current, rememberChoice } : current,
-                  );
-                }}
-              />
+                  setClosePrompt((value) => (value ? { ...value, rememberChoice } : value));
+                }} />
               <span>{t('app.close.remember')}</span>
             </label>
             <div className="close-dialog-actions">
-              <button
-                type="button"
-                className="close-choice-button primary-button"
-                disabled={windowsClosePrompt.resolvingAction !== null}
-                onClick={() => void resolveWindowsCloseRequest('minimize-to-tray')}
-              >
-                <span>
-                  {windowsClosePrompt.resolvingAction === 'minimize-to-tray'
-                    ? t('app.close.minimizing')
-                    : t('app.close.minimize')}
-                </span>
+              <button type="button" className="close-choice-button primary-button" disabled={closePrompt.resolvingAction !== null}
+                onClick={() => void resolveClose('minimize-to-tray')}>
+                {closePrompt.resolvingAction === 'minimize-to-tray' ? t('app.close.minimizing') : t('app.close.minimize')}
               </button>
-              <button
-                type="button"
-                className="close-choice-button danger-button"
-                disabled={windowsClosePrompt.resolvingAction !== null}
-                onClick={() => void resolveWindowsCloseRequest('exit')}
-              >
-                <span>
-                  {windowsClosePrompt.resolvingAction === 'exit'
-                    ? t('app.close.exiting')
-                    : t('app.close.exit')}
-                </span>
+              <button type="button" className="close-choice-button danger-button" disabled={closePrompt.resolvingAction !== null}
+                onClick={() => void resolveClose('exit')}>
+                {closePrompt.resolvingAction === 'exit' ? t('app.close.exiting') : t('app.close.exit')}
               </button>
             </div>
           </section>
@@ -557,20 +370,7 @@ function AppContent() {
       ) : null}
 
       <AppUpdateDialog />
-    </>
-  );
-}
-
-function CoreLockedPage() {
-  const { t } = useI18n();
-  return (
-    <section className="page core-locked-page">
-      <div className="empty-state core-locked-panel">
-        <ServerCog size={26} aria-hidden="true" />
-        <strong>{t('app.coreRequired.title')}</strong>
-        <span>{t('app.coreRequired.description')}</span>
-      </div>
-    </section>
+    </div>
   );
 }
 

@@ -3,26 +3,14 @@ import { appUpdateIndicatorState } from '../src/appUpdateModel';
 import { canOpenAppPage, isAlwaysAvailablePage } from '../src/navigation';
 import { oauthSubpages } from '../src/oauthNavigation';
 
-describe('简易模式、首页、配置与版本管理导航', () => {
-  test('内核停止时简易模式、首页、配置和版本管理始终可进入', () => {
-    expect(isAlwaysAvailablePage('easy')).toBe(true);
-    expect(isAlwaysAvailablePage('home')).toBe(true);
-    expect(isAlwaysAvailablePage('versions')).toBe(true);
-    expect(isAlwaysAvailablePage('config')).toBe(true);
-    expect(isAlwaysAvailablePage('usage-records')).toBe(true);
-    expect(canOpenAppPage('easy', false)).toBe(true);
-    expect(canOpenAppPage('home', false)).toBe(true);
-    expect(canOpenAppPage('versions', false)).toBe(true);
-    expect(canOpenAppPage('config', false)).toBe(true);
-    expect(canOpenAppPage('usage-records', false)).toBe(true);
-    expect(canOpenAppPage('agents', false)).toBe(true);
-    expect(isAlwaysAvailablePage('agents')).toBe(true);
-    expect(canOpenAppPage('quota', false)).toBe(false);
-  });
-
-  test('内核运行后解锁其他功能页', () => {
-    expect(canOpenAppPage('config', true)).toBe(true);
-    expect(canOpenAppPage('agents', true)).toBe(true);
+describe('CPA Desk navigation', () => {
+  test('pages that work without the core stay open while it is stopped', () => {
+    for (const page of ['overview', 'clients', 'usage', 'settings'] as const) {
+      expect(canOpenAppPage(page, false)).toBe(true);
+    }
+    expect(isAlwaysAvailablePage('accounts')).toBe(false);
+    expect(canOpenAppPage('accounts', false)).toBe(false);
+    expect(canOpenAppPage('accounts', true)).toBe(true);
   });
 });
 

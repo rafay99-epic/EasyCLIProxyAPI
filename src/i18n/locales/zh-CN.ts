@@ -269,6 +269,7 @@ export const zhCN = {
   'app.desktopConsole': '桌面控制台',
   'app.navigation': '主导航',
   'app.nav.easy': '新手模式',
+  'app.nav.overview': '概览',
   'app.nav.home': '首页',
   'app.nav.versions': '版本管理',
   'app.nav.kernel': '内核',

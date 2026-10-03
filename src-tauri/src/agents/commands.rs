@@ -15,9 +15,7 @@ pub(crate) fn inspect_agent_config_statuses(
     app: &tauri::AppHandle,
     config: &GuiConfigFile,
 ) -> Result<Vec<AgentConfigStatus>, String> {
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let api_key = effective_agent_api_key(config);
     let targets = [
@@ -168,9 +166,7 @@ pub(crate) async fn resolve_pi_default_model(
 pub(crate) async fn check_pi_provider_update(
     app: tauri::AppHandle,
 ) -> Result<PiProviderUpdateStatus, String> {
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let installed_version = read_pi_provider_version(&home)?;
     let Some(installed_version_value) = installed_version.as_deref() else {
@@ -197,9 +193,7 @@ pub(crate) async fn install_pi_provider(
     cache: tauri::State<'_, AgentConfigStatusCache>,
     model: String,
 ) -> Result<AgentConfigActionResult, String> {
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let config = gui_config_state.snapshot()?;
     let executable = find_pi_executable(&home);
@@ -233,9 +227,7 @@ pub(crate) async fn update_pi_provider(
     cache: tauri::State<'_, AgentConfigStatusCache>,
     model: String,
 ) -> Result<AgentConfigActionResult, String> {
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let config = gui_config_state.snapshot()?;
     let executable = find_pi_executable(&home)
@@ -260,9 +252,7 @@ pub(crate) async fn repair_pi_provider(
     cache: tauri::State<'_, AgentConfigStatusCache>,
     model: String,
 ) -> Result<AgentConfigActionResult, String> {
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let config = gui_config_state.snapshot()?;
     let model = resolve_pi_default_model(&config, &model).await?;
@@ -282,9 +272,7 @@ pub(crate) async fn uninstall_pi_provider(
     app: tauri::AppHandle,
     cache: tauri::State<'_, AgentConfigStatusCache>,
 ) -> Result<AgentConfigActionResult, String> {
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let executable =
         find_pi_executable(&home).ok_or_else(|| "Pi CLI was not detected. Install Pi first".to_string())?;
@@ -299,9 +287,7 @@ pub(crate) async fn uninstall_pi_provider(
 
 #[tauri::command]
 pub(crate) fn check_codex_oauth_login(app: tauri::AppHandle) -> Result<(), String> {
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     validate_codex_oauth_login(&home)
 }
@@ -887,9 +873,7 @@ fn sync_prepared_codex_model_catalog(
     let Some(catalog) = prepared.codex_catalog.as_deref() else {
         return Ok(false);
     };
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let changed = sync_codex_model_catalog_if_configured(
         &home,
@@ -930,7 +914,7 @@ pub(crate) fn request_codex_model_catalog_refresh() {
 
 pub(crate) fn start_codex_model_catalog_sync(app: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
-        let Ok(home) = app.path().home_dir() else {
+        let Ok(home) = agent_home_dir(&app) else {
             return;
         };
         let mut interval = tokio::time::interval(Duration::from_secs(30));
@@ -1099,9 +1083,7 @@ pub(crate) async fn apply_agent_config(
     claude_desktop_model_mappings: Option<ClaudeDesktopModelMappings>,
 ) -> Result<AgentConfigActionResult, String> {
     let client = AgentClient::parse(&client)?;
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let config = gui_config_state.snapshot()?;
     let api_key = effective_agent_api_key(&config);
@@ -1148,9 +1130,7 @@ pub(crate) async fn apply_agent_config(
 
 #[tauri::command]
 pub(crate) fn clear_codex_config(app: tauri::AppHandle) -> Result<Vec<String>, String> {
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let _guard = AGENT_CONFIG_FILE_LOCK
         .lock()
@@ -1171,9 +1151,7 @@ pub(crate) async fn set_agent_config_enabled(
     claude_desktop_model_mappings: Option<ClaudeDesktopModelMappings>,
 ) -> Result<AgentConfigActionResult, String> {
     let client = AgentClient::parse(&client)?;
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     if enabled {
         let config = gui_config_state.snapshot()?;

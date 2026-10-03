@@ -5,6 +5,9 @@ const AGENT_VERSION_PROBE_POLL_INTERVAL: Duration = Duration::from_millis(20);
 
 #[cfg(not(test))]
 pub(crate) fn agent_configuration_environment(name: &str) -> Option<PathBuf> {
+    if !agent_config_live() {
+        return None;
+    }
     env::var_os(name)
         .map(PathBuf::from)
         .filter(|path| !path.as_os_str().is_empty())

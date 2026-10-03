@@ -802,11 +802,13 @@ function ClaudeDesktopHelpDialog({ onClose }: { onClose: () => void }) {
 }
 
 type AgentsPageProps = {
+  /** Hide the page title when a parent page (Clients) supplies its own. */
+  hideTitle?: boolean;
   embedded?: boolean;
   onConfigurationApplied?: () => void;
 };
 
-export function AgentsPage({ embedded = false, onConfigurationApplied }: AgentsPageProps = {}) {
+export function AgentsPage({ embedded = false, hideTitle = false, onConfigurationApplied }: AgentsPageProps = {}) {
   const { t } = useI18n();
   const [selected, setSelected] = useState<AgentClientId>(readSelectedAgentClient);
   const [viewStateByClient, setViewStateByClient] = useState(() => agentViewStateCache);
@@ -2028,7 +2030,7 @@ export function AgentsPage({ embedded = false, onConfigurationApplied }: AgentsP
             </>
           ) : (
             <>
-              <h1>{t('agents.title')}</h1>
+              {hideTitle ? null : <h1>{t('agents.title')}</h1>}
             </>
           )}
         </div>

@@ -80,7 +80,8 @@ fn gui_config_defaults_are_stable() {
     let config = GuiConfigFile::default();
     let content = toml::to_string_pretty(&config).unwrap();
 
-    assert!(content.contains("port = 8317"));
+    // Fork defaults: own port next to production, cache-safe routing.
+    assert!(content.contains("port = 8327"));
     assert!(content.contains("allow-lan = false"));
     assert!(content.contains("run-on-startup = false"));
     assert!(content.contains("start-core-on-launch = true"));
@@ -96,7 +97,9 @@ fn gui_config_defaults_are_stable() {
     assert!(content.contains("remark = \"Default key\""));
     assert!(content.contains("management-secret-key = \"\""));
     assert!(content.contains("plugins-enabled = false"));
-    assert!(content.contains("routing-strategy = \"round-robin\""));
+    assert!(content.contains("routing-strategy = \"fill-first\""));
+    assert!(content.contains("routing-session-affinity = true"));
+    assert!(content.contains("routing-session-affinity-ttl = \"70m\""));
     assert!(content.contains("download-source = \"github\""));
     assert!(content.contains("prefer-gitcode-downloads = false"));
     assert!(content.contains("request-retry = 3"));
@@ -203,4 +206,14 @@ fn physical_window_size_uses_display_scale_and_ignores_minimized_sizes() {
     );
     assert!(logical_window_size_from_physical(&tauri::PhysicalSize::new(0, 0), 1.0).is_none());
     assert!(logical_window_size_from_physical(&physical_size, 0.0).is_none());
+}
+
+/// The macOS data directory is named after APP_IDENTIFIER. If it drifted back to upstream's
+/// identifier, this fork would read and write the production install's data.
+#[test]
+fn data_dir_identifier_matches_bundle_and_never_upstream() {
+    let conf: serde_json::Value =
+        serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
+    assert_eq!(conf["identifier"], crate::APP_IDENTIFIER);
+    assert_ne!(crate::APP_IDENTIFIER, "com.cpa.gui");
 }
