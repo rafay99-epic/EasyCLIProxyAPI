@@ -1,0 +1,99 @@
+FORK.md
+  s_4f76173e1cf9cc::t_0b20dfcf09f2cb 4-6,11,13-17,19-29,31-32,36-37,40-44,67-99,103-104,107-109
+  s_4f76173e1cf9cc::t_a2cf7034ea8822 110
+.github/workflows/release.yml
+  s_4f76173e1cf9cc::t_f5abaf30ad29e2 1-6,9-15,18-22,25,27-29,31-33,36,38,40-46,48-59,61-64,66,68,70-72,74-75,77-80,82-89,91,93-111,115,117-124
+src/TrayPanel.tsx
+  s_4f76173e1cf9cc::t_bb20896e26042a 1-174
+src/components/desk/MenubarBridge.tsx
+  s_4f76173e1cf9cc::t_1b0f8f1dc9aeba 1-76
+src-tauri/src/updates.rs
+  s_4f76173e1cf9cc::t_dfd30167ef264c 1-197
+src/services/deskUpdate.ts
+  s_4f76173e1cf9cc::t_585573887df38f 1-64
+build-desk.sh
+  s_4f76173e1cf9cc::t_ee637af42112dd 3-18,24-38,48-63,65-75,77
+  s_4f76173e1cf9cc::t_32c6264d9174a1 2
+  s_4f76173e1cf9cc::t_8eee0fb3d3d106 76
+  s_4f76173e1cf9cc::t_1faa26bed390fc 79-86
+src/services/deskSnapshot.ts
+  s_4f76173e1cf9cc::t_4c4961754605b0 1-41
+src-tauri/src/menubar.rs
+  s_4f76173e1cf9cc::t_a2459c0a2d804f 1-206
+.gitignore
+  s_4f76173e1cf9cc::t_78530c55d7bace 18
+core.ref
+  s_4f76173e1cf9cc::t_6f9d05be493eca 1-5
+scripts/build-core.sh
+  s_4f76173e1cf9cc::t_f7dae18f276331 1-24
+scripts/install-latest.sh
+  s_4f76173e1cf9cc::t_3108601a438f3a 1-50
+scripts/next-version.sh
+  s_4f76173e1cf9cc::t_8c73d907f2b170 1-26
+scripts/publish-dev.sh
+  s_4f76173e1cf9cc::t_f5a49ae81120d1 1-31
+scripts/release-notes.sh
+  s_4f76173e1cf9cc::t_ccda72858ee179 1-66
+src-tauri/Cargo.lock
+  s_4f76173e1cf9cc::t_9ce37a33b27204 381-386,583-592,616,629,641,670,678,1773,1777,1923-1935,2067-2096,2334-2339,2362-2371,2649-2660,2735-2740,2757-2770,3085-3090,3344,3350-3352,3357,3481-3492,3503-3529,3562-3570,3628-3650,3909-3924,4106-4126,4148,4158,4225-4226,4416-4448,4459,4482,5322-5330,5525-5535,5894,6154-6165
+src-tauri/Cargo.toml
+  s_4f76173e1cf9cc::t_a1d5fbc42c17ad 4,30,41
+src-tauri/capabilities/default.json
+  s_4f76173e1cf9cc::t_238eb6779e5b08 4-8,12
+src-tauri/src/agents.rs
+  s_4f76173e1cf9cc::t_ee9c0f8b61d1a7 14,16,45-46,59,65-67
+src-tauri/src/app_settings.rs
+  s_4f76173e1cf9cc::t_59caeb4c4c1c67 793-795
+src-tauri/src/core_config/settings.rs
+  s_4f76173e1cf9cc::t_37216f2c5bf59e 1799-1802
+src-tauri/src/core_config/yaml.rs
+  s_4f76173e1cf9cc::t_92184feeb01372 1462
+src-tauri/src/core_runtime.rs
+  s_4f76173e1cf9cc::t_877d42c3767741 5-8,149-151,319-321
+src-tauri/src/main.rs
+  s_4f76173e1cf9cc::t_29fa7ccdb1d3f2 6-8,83-85,88,126-157,936,2439,2450-2451,2489-2491,2518-2532,2579,2703-2714
+src-tauri/src/migration.rs
+  s_4f76173e1cf9cc::t_cf27b96eda8b77 197-208,216-218
+src-tauri/src/tests/app_settings.rs
+  s_4f76173e1cf9cc::t_07502def7e2062 84,217-220,222-236
+src-tauri/src/tests/core_config.rs
+  s_4f76173e1cf9cc::t_43f9f23961e843 6-7,1105-1106,2077
+src-tauri/src/tray.rs
+  s_4f76173e1cf9cc::t_a3be9be25ebe6e 2,11,58-59,61-73,75,79-82
+src-tauri/tauri.conf.json
+  s_4f76173e1cf9cc::t_d870635cc953d4 27-28,41-49
+src-tauri/tauri.dev.conf.json
+  s_4f76173e1cf9cc::t_ad18c6dd91645c 1-22
+src-tauri/tauri.release.conf.json
+  s_4f76173e1cf9cc::t_36d1b2d3c95bb7 1-6
+src/App.tsx
+  s_4f76173e1cf9cc::t_b6bb3e3b79ea88 11-12,17-19,129,157,177,214-215,253,255-256,261,299,303
+src/components/AgentConfigTargetNotice.tsx
+  s_4f76173e1cf9cc::t_56e96c4f922915 8,41-43
+src/main.tsx
+  s_4f76173e1cf9cc::t_4ec650d6bf1fe6 6,20-26,31-32
+src/mocks/browserMockRuntime.ts
+  s_4f76173e1cf9cc::t_1ce0b7d0019d50 381,863-872
+src/pages/desk/SettingsView.tsx
+  s_4f76173e1cf9cc::t_9d60d866c4f606 9-11,76-118,132
+src/styles/app.css
+  s_4f76173e1cf9cc::t_7ac86b469bfdf0 257-259,270-287
+tests/uiLocalization.test.ts
+  s_4f76173e1cf9cc::t_57bfc3bc860636 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2c31f88fab5db59d06dbeb6ccde793cb5bf3a28a",
+  "prompts": {},
+  "sessions": {
+    "s_4f76173e1cf9cc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "720b89d8-2aa2-47d9-bf4f-d7ec17e8db84",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Abdul Rafay <99marafay@gmail.com>"
+    }
+  }
+}
