@@ -376,6 +376,8 @@ function createState(scenario: BrowserMockScenario) {
   return {
     scenario,
     agentConfigLive: false,
+    migratedAt: undefined as string | undefined,
+    migrationChecks: 0,
     coreStatus: createCoreStatus(scenario),
     guiSettings: {
       host: '127.0.0.1',
@@ -857,6 +859,19 @@ export function createBrowserMockRuntime(
       case 'launch_agent': return null;
 
       case 'get_core_status': return clone(state.coreStatus);
+      case 'get_migration_status':
+        // Production "quits" after a couple of checks so both sheet states can be seen.
+        state.migrationChecks += 1;
+        return {
+        available: true, productionDir: '~/Library/Application Support/com.cpa.gui',
+        productionProcesses: state.migratedAt || state.migrationChecks > 3 ? [] : ['86549 cpa-gui', '86630 cli-proxy-api'],
+        migratedAt: state.migratedAt ?? null, credentials: 6, usageBytes: 62_000_000, port: 8317,
+      };
+      case 'run_production_migration':
+        state.migratedAt = '20261003-120000';
+        state.agentConfigLive = true;
+        return { copied: ['config.toml', 'cpa-core/config.yaml', 'oauth', 'codex_models', 'usage-records/usage.db'], backupDir: '~/Library/Application Support/com.rafay.cpadesk/pre-migration-20261003-120000' };
+      case 'restart_after_migration': return null;
       case 'get_agent_config_target': return { live: state.agentConfigLive === true, sandboxDir: '~/Library/Application Support/com.rafay.cpadesk/agent-sandbox-home' };
       case 'set_agent_config_live':
         state.agentConfigLive = asObject(rawPayload).live === true;

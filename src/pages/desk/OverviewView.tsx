@@ -2,13 +2,14 @@
 // reset, or dragged by hand), and recent session activity. All data comes from the
 // app-wide routing controller, which keeps running while this page is closed.
 
-import { useMemo, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { GripVertical, RefreshCw } from 'lucide-react';
 import { useCoreRuntime } from '../../coreRuntime';
 import { useDeskNav } from '../../deskNav';
 import { currentWindow, projectBurn, type AccountLimits, type LimitWindowId } from '../../services/limits';
 import { runRoutingTick, updateRoutingSettings, useRoutingState, type RoutingState } from '../../services/routingController';
 import { clockText, leftText, Meter, MiniWindow, PlanBadge, shortName, useNow } from '../../components/desk/ui';
+import { MigrationSheet, useMigrationStatus } from '../../components/desk/MigrationSheet';
 
 const statLabels: Record<LimitWindowId, string> = { fiveHour: '5 hour', week: 'Week', fableWeek: 'Fable week' };
 
@@ -153,8 +154,12 @@ function activityRows(state: RoutingState, labels: Map<string, string>, now: num
 export function OverviewView() {
   const state = useRoutingState();
   const { status } = useCoreRuntime();
-  const { go } = useDeskNav();
+  const { go, target, visit } = useDeskNav();
   const now = useNow();
+  const migration = useMigrationStatus();
+  const [migrating, setMigrating] = useState(false);
+  useEffect(() => { if (target.migrate) setMigrating(true); }, [target, visit]);
+  const offerImport = Boolean(migration.status?.available && !migration.status.migratedAt);
   const labels = useMemo(() => new Map(state.accounts.map((account) => [account.name, account.label])), [state.accounts]);
   const servingName = state.plan.find((entry) => entry.eligible)?.name ?? state.plan[0]?.name;
   const serving = state.accounts.find((account) => account.name === servingName);
@@ -183,6 +188,13 @@ export function OverviewView() {
         </div>
       </div>
 
+      {offerImport ? (
+        <div className="d-notice">
+          <span>Move your EasyCLIProxyAPI accounts, keys and settings into CPA Desk.</span>
+          <button type="button" className="d-link" style={{ marginLeft: 'auto' }} onClick={() => setMigrating(true)}>Import</button>
+        </div>
+      ) : null}
+      {migrating ? <MigrationSheet onClose={() => { setMigrating(false); void migration.refresh(); }} /> : null}
       {status && !status.ready ? (
         <div className="d-notice d-warn">
           <span>The proxy core is not running, so limits and routing are paused.</span>

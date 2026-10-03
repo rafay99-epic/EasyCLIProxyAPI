@@ -2,6 +2,7 @@
 
 mod agents;
 mod session_events;
+mod migration;
 mod app_settings;
 mod app_update;
 mod claude_catalog;
@@ -46,6 +47,7 @@ use provider_health::{
 
 use agents::*;
 use session_events::*;
+use migration::*;
 use app_settings::*;
 use app_update::*;
 use core_config::*;
@@ -2649,6 +2651,9 @@ fn main() {
             get_agent_config_target,
             set_agent_config_live,
             read_session_activity,
+            get_migration_status,
+            run_production_migration,
+            restart_after_migration,
             update_codex_model_catalog,
             get_deepseek_harness_model_catalog_editor,
             save_deepseek_harness_model_catalog_editor,

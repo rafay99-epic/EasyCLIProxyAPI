@@ -14,6 +14,8 @@ export type DeskTarget = {
   settingsSection?: SettingsSection;
   /** Open the subscription sign-in sheet on the Accounts page. */
   signIn?: boolean;
+  /** Open the EasyCLIProxyAPI import sheet on Overview. */
+  migrate?: boolean;
 };
 
 type DeskNav = {

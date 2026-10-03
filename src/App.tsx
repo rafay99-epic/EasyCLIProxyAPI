@@ -248,6 +248,7 @@ function AppContent() {
     })),
     { id: 'sign-in', label: 'Add account', hint: 'Sign in', run: () => go('accounts', { signIn: true }) },
     { id: 'api-keys', label: 'API keys', run: () => go('accounts', { accountsTab: 'keys' }) },
+    { id: 'import', label: 'Import from EasyCLIProxyAPI', run: () => go('overview', { migrate: true }) },
     { id: 'refresh', label: 'Refresh limits', run: () => void runRoutingTick(true) },
     { id: 'sidebar', label: 'Toggle sidebar', hint: '⌘\\', run: toggleRail },
     control.status?.running
