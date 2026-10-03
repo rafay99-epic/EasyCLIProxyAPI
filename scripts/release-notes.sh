@@ -15,6 +15,7 @@ range="${previous:-$fork_point}..HEAD"
 
 declare -a features=() fixes=() improvements=() other=()
 while IFS= read -r -d $'\x1e' entry; do
+  entry="${entry#$'\n'}"   # git separates entries with a newline
   subject="${entry%%$'\x1f'*}"
   body="${entry#*$'\x1f'}"
   [[ -z "$subject" ]] && continue
