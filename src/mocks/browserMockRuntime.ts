@@ -272,6 +272,21 @@ function createState(scenario: BrowserMockScenario) {
       modtime: Date.now() - 45 * 60_000,
       excluded_models: ['claude-legacy-*'],
     },
+    ...(['backend', 'weekend'] as const).map((who, index) => ({
+      name: `claude-${who}.json`,
+      provider: 'claude',
+      type: 'anthropic',
+      source: 'file',
+      path: `C:\\EasyCLIProxyAPI\\oauth\\claude-${who}.json`,
+      auth_index: `mock-claude-${index + 2}`,
+      email: `${who}.mock@example.com`,
+      disabled: false,
+      priority: 0,
+      success: 40 + index * 13,
+      failed: index,
+      modtime: Date.now() - (index + 2) * 60 * 60_000,
+      excluded_models: [],
+    })),
     {
       name: 'gemini-runtime',
       provider: 'gemini',
@@ -360,6 +375,9 @@ function createState(scenario: BrowserMockScenario) {
   };
   return {
     scenario,
+    agentConfigLive: false,
+    migratedAt: undefined as string | undefined,
+    migrationChecks: 0,
     coreStatus: createCoreStatus(scenario),
     guiSettings: {
       host: '127.0.0.1',
@@ -606,11 +624,20 @@ function mockApiCall(body: JsonObject) {
     };
   }
   if (url.includes('anthropic.com/api/oauth/usage')) {
+    // Three Claude accounts in different states so routing has something to order.
+    const usage: Record<string, [number, number, number, number, number]> = {
+      // [5h %, 5h reset in h, week %, week reset in h, Fable week %]
+      'mock-claude-1': [24, 3, 41, 72, 8],
+      'mock-claude-2': [100, 2, 34, 110, 3],
+      'mock-claude-3': [1, 4, 98, 20, 14],
+    };
+    const [fiveHour, fiveReset, week, weekReset, fable] = usage[readString(body.authIndex)] ?? usage['mock-claude-1'];
     return {
       status_code: 200,
       body: {
-        five_hour: { utilization: 24, resets_at: isoHoursAgo(-3) },
-        seven_day: { utilization: 41, resets_at: isoHoursAgo(-72) },
+        five_hour: { utilization: fiveHour, resets_at: isoHoursAgo(-fiveReset) },
+        seven_day: { utilization: week, resets_at: isoHoursAgo(-weekReset) },
+        limits: [{ kind: 'weekly_scoped', is_active: true, percent: fable, resets_at: isoHoursAgo(-weekReset), scope: { model: { display_name: 'Fable 5.1' } } }],
       },
     };
   }
@@ -832,6 +859,34 @@ export function createBrowserMockRuntime(
       case 'launch_agent': return null;
 
       case 'get_core_status': return clone(state.coreStatus);
+      case 'get_migration_status':
+        // Production "quits" after a couple of checks so both sheet states can be seen.
+        state.migrationChecks += 1;
+        return {
+        available: true, productionDir: '~/Library/Application Support/com.cpa.gui',
+        productionProcesses: state.migratedAt || state.migrationChecks > 3 ? [] : ['86549 cpa-gui', '86630 cli-proxy-api'],
+        migratedAt: state.migratedAt ?? null, credentials: 6, usageBytes: 62_000_000, port: 8317,
+      };
+      case 'run_production_migration':
+        state.migratedAt = '20261003-120000';
+        state.agentConfigLive = true;
+        return { copied: ['config.toml', 'cpa-core/config.yaml', 'oauth', 'codex_models', 'usage-records/usage.db'], backupDir: '~/Library/Application Support/com.rafay.cpadesk/pre-migration-20261003-120000' };
+      case 'restart_after_migration': return null;
+      case 'get_agent_config_target': return { live: state.agentConfigLive === true, sandboxDir: '~/Library/Application Support/com.rafay.cpadesk/agent-sandbox-home' };
+      case 'set_agent_config_live':
+        state.agentConfigLive = asObject(rawPayload).live === true;
+        return { live: state.agentConfigLive, sandboxDir: '~/Library/Application Support/com.rafay.cpadesk/agent-sandbox-home' };
+      case 'read_session_activity': return {
+        moves: [{
+          at: '2026-10-02 22:57:44', session: 'claude:2…', model: 'claude-opus-5-5',
+          toAccount: 'claude-team.json', fromAccount: 'claude-other.json',
+          reason: 'Post "https://api.anthropic.com/v1/messages": write tcp: operation timed out',
+        }],
+        warmSessions: [
+          { session: 'claude:c…', account: 'claude-team.json', model: 'claude-opus-5-5', lastSeen: '2026-10-03 13:58:12', warmSecondsLeft: 3480 },
+          { session: 'claude:4…', account: 'claude-team.json', model: 'claude-opus-5-5', lastSeen: '2026-10-03 13:51:40', warmSecondsLeft: 3060 },
+        ],
+      };
       case 'start_core_process': {
         if (!state.coreStatus.installed) throw new Error('Browser Mock: install the core first');
         Object.assign(state.coreStatus, { running: true, ready: true, managed: true, starting: false, processId: 42817, message: 'Browser Mock core is running' });

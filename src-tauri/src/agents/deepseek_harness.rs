@@ -726,7 +726,7 @@ pub(crate) async fn get_deepseek_harness_model_catalog_editor(
 ) -> Result<HarnessEditorSnapshot, String> {
     let config = gui_config_state.snapshot()?;
     let models = fetch_deepseek_harness_models(&config).await?;
-    let home = app.path().home_dir().map_err(|_| "Failed to get user directory")?;
+    let home = agent_home_dir(&app).map_err(|_| "Failed to get user directory")?;
     let _guard = AGENT_CONFIG_FILE_LOCK
         .lock()
         .map_err(|_| "Agent configuration file lock is poisoned")?;
@@ -741,7 +741,7 @@ pub(crate) async fn save_deepseek_harness_model_catalog_editor(
 ) -> Result<HarnessEditorSnapshot, String> {
     let config = gui_config_state.snapshot()?;
     let models = fetch_deepseek_harness_models(&config).await?;
-    let home = app.path().home_dir().map_err(|_| "Failed to get user directory")?;
+    let home = agent_home_dir(&app).map_err(|_| "Failed to get user directory")?;
     let _guard = AGENT_CONFIG_FILE_LOCK
         .lock()
         .map_err(|_| "Agent configuration file lock is poisoned")?;

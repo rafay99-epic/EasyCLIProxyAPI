@@ -1,0 +1,2152 @@
+/*
+ * desk.css: legacy page skin matching design/cpa-desk-design-v2.html.
+ *
+ * Loaded last from styles/index.css so it wins the cascade. Pure overrides:
+ * no DOM or layout-logic changes. Rules are prefixed with :root so they beat
+ * the original single-class selectors, and token blocks use
+ * :root:is([data-theme], :not([data-theme])) so they apply whether or not the
+ * theme attribute is set (specificity 0,2,0 ties :root[data-theme='dark']).
+ *
+ * Scope: legacy pages and their dialogs only. The new shell and native pages
+ * (every d- class) live in app.css. The one d- class used here is .d-embed,
+ * the wrapper the shell puts around an embedded legacy page (section 15).
+ */
+
+/* 1. Tokens ---------------------------------------------------------------- */
+
+:root:is([data-theme], :not([data-theme])) {
+  color-scheme: dark;
+
+  /* desk palette (mirrors the spec) */
+  --desk-bg: #000;
+  --desk-raise: #0a0a0a;
+  --desk-hover: rgba(255, 255, 255, 0.04);
+  --desk-active: rgba(255, 255, 255, 0.07);
+  --desk-line: rgba(255, 255, 255, 0.08);
+  --desk-line-2: rgba(255, 255, 255, 0.13);
+  --desk-line-hover: rgba(255, 255, 255, 0.2);
+  --desk-focus: rgba(255, 255, 255, 0.4);
+  --desk-text: #f5f5f5;
+  --desk-text-2: #a3a3a3;
+  --desk-text-3: #6e6e6e;
+  --desk-ok: #3ecf8e;
+  --desk-warn: #f5a524;
+  --desk-bad: #f04d4d;
+  --desk-bad-line: rgba(240, 77, 77, 0.35);
+  --desk-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --desk-ease: cubic-bezier(0.2, 0, 0, 1);
+  --desk-fast: 120ms;
+  --desk-transition: color var(--desk-fast) var(--desk-ease), background-color var(--desk-fast) var(--desk-ease), border-color var(--desk-fast) var(--desk-ease);
+
+  /* typography: 11 / 12 / 13 / 15 / 22 only */
+  --font-family-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui, 'PingFang SC', 'Hiragino Sans', 'Noto Sans SC', 'Noto Sans JP', 'Microsoft YaHei UI', sans-serif;
+  --font-family-mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-mono: var(--font-family-mono);
+  --font-size-caption: 11px;
+  --font-size-meta: 12px;
+  --font-size-label: 13px;
+  --font-size-body: 13px;
+  --font-size-section: 13px;
+  --font-size-panel-title: 13px;
+  --font-size-dialog-title: 15px;
+  --font-size-page-title: 22px;
+  --font-size-metric-compact: 22px;
+  --font-size-display: 22px;
+  --line-height-body: 1.45;
+  --line-height-relaxed: 1.55;
+
+  /* semantic surface tokens */
+  --bg-primary: #000;
+  --bg-secondary: #000;
+  --bg-tertiary: #0a0a0a;
+  --bg-quinary: #000;
+  --bg-card: #000;
+  --bg-hover: var(--desk-hover);
+  --bg-error-light: transparent;
+
+  --text-primary: #f5f5f5;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #6e6e6e;
+  --text-quaternary: #6e6e6e;
+  --text-muted: #6e6e6e;
+  --text-placeholder: #6e6e6e;
+  --text-disabled: #4a4a4a;
+
+  --border-color: var(--desk-line);
+  --border-secondary: var(--desk-line);
+  --border-primary: var(--desk-line-2);
+  --border-hover: var(--desk-line-hover);
+
+  --primary-color: #f5f5f5;
+  --primary-hover: #dcdcdc;
+  --primary-active: #f5f5f5;
+  --primary-contrast: #000;
+  --success-color: #3ecf8e;
+  --warning-color: #f5a524;
+  --error-color: #f04d4d;
+  --danger-color: #f04d4d;
+  --info-color: #a3a3a3;
+  --amber-color: #f5a524;
+  --amber-text: #f5a524;
+  --success-badge-bg: transparent;
+  --success-badge-text: #3ecf8e;
+  --success-badge-border: transparent;
+  --failure-badge-bg: transparent;
+  --failure-badge-text: #f04d4d;
+  --failure-badge-border: transparent;
+  --count-badge-bg: transparent;
+  --count-badge-text: #a3a3a3;
+
+  --ui-accent: #f5f5f5;
+  --ui-accent-strong: #f5f5f5;
+  --ui-accent-contrast: #000;
+  --ui-accent-soft: transparent;
+  --ui-focus-ring: rgba(255, 255, 255, 0.7);
+  --ui-accent-shadow: transparent;
+  --ui-panel-shadow: none;
+  --shadow-sm: none;
+
+  /* legacy --theme-* palette, remapped by role (fg / border / fill) */
+  /* primary text */
+  --theme-2d2a26: #f5f5f5;
+  --theme-2f2c28: #f5f5f5;
+  --theme-342f2a: #f5f5f5;
+  --theme-39352f: #f5f5f5;
+  --theme-433f39: #f5f5f5;
+  --theme-4f4a43: #f5f5f5;
+  /* secondary text */
+  --theme-4b4742: #a3a3a3;
+  --theme-59544d: #a3a3a3;
+  --theme-5f5a53: #a3a3a3;
+  --theme-6b655d: #a3a3a3;
+  --theme-6d6760: #a3a3a3;
+  --theme-3f3550: #a3a3a3;
+  --theme-554075: #a3a3a3;
+  --theme-654f91: #a3a3a3;
+  /* tertiary text */
+  --theme-6f6961: #6e6e6e;
+  --theme-716b61: #6e6e6e;
+  --theme-777067: #6e6e6e;
+  --theme-7a746c: #6e6e6e;
+  --theme-817b72: #6e6e6e;
+  --theme-817b73: #6e6e6e;
+  --theme-8a847c: #6e6e6e;
+  --theme-918a81: #6e6e6e;
+  --theme-9a938a: #6e6e6e;
+  --theme-9a958d: #6e6e6e;
+  --theme-9b958c: #6e6e6e;
+  --theme-8069ad: #6e6e6e;
+  --theme-aaa49b: #4a4a4a;
+  /* former blue accent text: secondary, links brighten on hover */
+  --theme-344ca1: #a3a3a3;
+  --theme-3f6f98: #a3a3a3;
+  --theme-42637f: #a3a3a3;
+  --theme-4d78a8: #a3a3a3;
+  /* status text */
+  --theme-2f6b3a: #3ecf8e;
+  --theme-2f6b3f: #3ecf8e;
+  --theme-4f825c: #3ecf8e;
+  --theme-5d9a6c: #3ecf8e;
+  --theme-9f2d20: #f04d4d;
+  --theme-8f3025: #f04d4d;
+  --theme-a33b2b: #f04d4d;
+  --theme-805a24: #f5a524;
+  --theme-8b5b21: #f5a524;
+  --theme-866b4d: #f5a524;
+  --theme-8a625d: #f5a524;
+  --theme-c77b30: #f5a524;
+  --theme-d7a447: #f5a524;
+  --theme-error: #f04d4d;
+  /* borders: hairline (.08) or strong (.13) */
+  --theme-d5d2cb: rgba(255, 255, 255, 0.13);
+  --theme-e3e1db: rgba(255, 255, 255, 0.08);
+  --theme-e2ddd3: rgba(255, 255, 255, 0.08);
+  --theme-d8d4cc: rgba(255, 255, 255, 0.13);
+  --theme-d8d2c8: rgba(255, 255, 255, 0.13);
+  --theme-c7c2b8: rgba(255, 255, 255, 0.2);
+  --theme-c9c4ba: rgba(255, 255, 255, 0.13);
+  --theme-c9d6e2: rgba(255, 255, 255, 0.13);
+  --theme-d3d0c9: rgba(255, 255, 255, 0.13);
+  --theme-d9d4c9: rgba(255, 255, 255, 0.08);
+  --theme-ddd8ce: rgba(255, 255, 255, 0.08);
+  --theme-dfdcd4: rgba(255, 255, 255, 0.08);
+  --theme-e3ded5: rgba(255, 255, 255, 0.13);
+  --theme-e5e1d9: rgba(255, 255, 255, 0.08);
+  --theme-e8e4dc: rgba(255, 255, 255, 0.08);
+  --theme-ece8df: rgba(255, 255, 255, 0.08);
+  --theme-eeeae2: rgba(255, 255, 255, 0.08);
+  --theme-bdb5a9: rgba(255, 255, 255, 0.13);
+  --theme-8d8377: rgba(255, 255, 255, 0.2);
+  --theme-9ca9df: rgba(255, 255, 255, 0.13);
+  --theme-9d8abd: rgba(255, 255, 255, 0.13);
+  --theme-d8d1eb: rgba(255, 255, 255, 0.13);
+  --theme-b6d3bd: rgba(255, 255, 255, 0.08);
+  --theme-b8d1bb: rgba(255, 255, 255, 0.08);
+  --theme-b9d5bf: rgba(255, 255, 255, 0.08);
+  --theme-c9d8ca: rgba(255, 255, 255, 0.08);
+  --theme-c9dfcf: rgba(255, 255, 255, 0.08);
+  --theme-9db8a5: rgba(255, 255, 255, 0.08);
+  --theme-dfbf91: rgba(255, 255, 255, 0.13);
+  --theme-e4d0af: rgba(255, 255, 255, 0.13);
+  --theme-dfb7b0: rgba(240, 77, 77, 0.35);
+  --theme-e2b6ae: rgba(240, 77, 77, 0.35);
+  --theme-efc9c2: rgba(240, 77, 77, 0.35);
+  --theme-a83f32: rgba(240, 77, 77, 0.35);
+  --theme-b64132: rgba(240, 77, 77, 0.35);
+  --theme-bd5e31: rgba(240, 77, 77, 0.35);
+  /* fills: surfaces collapse to black, hovers to the hover tint, tints vanish */
+  --theme-e8e5dc: rgba(255, 255, 255, 0.04);
+  --theme-eeece6: rgba(255, 255, 255, 0.07);
+  --theme-f0ede6: #000;
+  --theme-f0eee8: rgba(255, 255, 255, 0.04);
+  --theme-f2efe8: #000;
+  --theme-f2f0ea: #000;
+  --theme-f4f1ea: rgba(255, 255, 255, 0.04);
+  --theme-f4f2ec: #000;
+  --theme-f6f2ec: #000;
+  --theme-f8f5ee: #000;
+  --theme-f8f5ef: #000;
+  --theme-f8f6f1: #000;
+  --theme-faf8f2: #000;
+  --theme-faf8f4: #000;
+  --theme-faf9f5: #000;
+  --theme-fff: #000;
+  --theme-fffdf8: #000;
+  --theme-ffffff: #000;
+  --theme-f1f6fa: #000;
+  --theme-f1ecfb: transparent;
+  --theme-f5f1ff: transparent;
+  --theme-f7f3ff: transparent;
+  --theme-f8f5ff: transparent;
+  --theme-eef1ff: transparent;
+  --theme-dce2fb: transparent;
+  --theme-eef7f0: transparent;
+  --theme-f1f8f1: transparent;
+  --theme-f2f7f2: transparent;
+  --theme-f3f8f4: transparent;
+  --theme-dce8df: transparent;
+  --theme-fff1ee: transparent;
+  --theme-fdf1ee: transparent;
+  --theme-fff7e9: transparent;
+  --theme-fff8eb: transparent;
+}
+
+/* 2. Base ------------------------------------------------------------------ */
+
+:root {
+  font-family: var(--font-family-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  color: #f5f5f5;
+  background: #000;
+  -webkit-font-smoothing: antialiased;
+}
+
+html,
+body,
+#root,
+:root :is(.content, .app-error-boundary) {
+  background: #000;
+}
+
+/* legacy shell main area: spec page padding (the new shell pads .d-embed itself) */
+:root .content {
+  padding: 28px 32px 80px;
+}
+
+:root ::selection {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(code, pre, kbd, samp) {
+  font-family: var(--font-family-mono);
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(button, input, select, textarea, summary, a, [role='tab']):focus-visible {
+  outline: 1.5px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(a) {
+  color: #a3a3a3;
+  transition: var(--desk-transition);
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(a):hover {
+  color: #f5f5f5;
+}
+
+/* tabular numbers anywhere a number column or metric is rendered */
+:root :where(:not(.d-root *), .d-embed *):is(td, th, .usage-stat-card, .version-metric-tile, .status-card, .config-count, .usage-token-count, .panel-detail-row dd) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* scrollbars */
+:root * {
+  scrollbar-color: rgba(255, 255, 255, 0.13) transparent;
+}
+
+:root ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.13);
+  border: 0;
+}
+
+/* 3. Headings -------------------------------------------------------------- */
+
+:root .page h1,
+:root .management-header h1 {
+  margin: 0;
+  color: #f5f5f5;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+/* section titles */
+:root :is(.panel h2, .page h2, .usage-section-heading strong, .agent-section-heading h3, .provider-title-row h2) {
+  color: #f5f5f5;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+:root .page h3 {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* page headers: one row, title left, actions right */
+:root .management-header {
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  margin-bottom: 20px;
+  padding: 0;
+  border: 0;
+}
+
+:root :is(.management-heading-actions, .agent-header-actions) {
+  align-items: center;
+  gap: 8px;
+}
+
+:root .muted-summary {
+  color: #6e6e6e;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* 4. Pages + sections ------------------------------------------------------ */
+
+:root :is(.kernel-page, .config-page, .management-page) {
+  gap: 16px;
+}
+
+/*
+ * Top-level sections: no box, a single top hairline. Horizontal padding goes
+ * to zero so content aligns with the page title.
+ */
+:root :is(
+  .panel,
+  .quiet-panel,
+  .usage-trend-panel,
+  .usage-health-panel,
+  .usage-category-panel,
+  .usage-events-panel,
+  .usage-pricing-panel,
+  .usage-data-management-panel,
+  .config-network-section,
+  .config-sensitive-words-card,
+  .codex-session-overview,
+  .codex-session-list-section,
+  .agent-core-setting-section,
+  .provider-health-overview,
+  .app-release-notes,
+  .version-source-row,
+  .simple-mode-guide-card,
+  .easy-mode-agent-layout
+) {
+  padding: 16px 0 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/*
+ * Nested containers and cards: lose box chrome entirely. Cards that sit in a
+ * grid keep a top hairline (added below) so siblings still read as separate.
+ */
+:root :is(
+  .status-card,
+  .version-list-item,
+  .version-metric-tile,
+  .client-api-card,
+  .empty-state,
+  .config-diagnostics-setting,
+  .config-diagnostics-field,
+  .config-diagnostics-commercial-note,
+  .config-management-description,
+  .config-management-form,
+  .config-network-field,
+  .config-software-settings-list,
+  .config-delete-warning,
+  .oauth-auth-url-box,
+  .model-config-card,
+  .model-config-summary,
+  .model-discovery-content,
+  .model-transfer-panel,
+  .provider-health-model-list,
+  .thinking-level-config,
+  .provider-advanced-settings,
+  .provider-cloak-settings,
+  .thinking-model-list,
+  .thinking-alias-preview,
+  .codex-session-repair-panel,
+  .codex-session-notice,
+  .codex-session-list,
+  .codex-session-empty,
+  .codex-session-cleanup-list,
+  .deepseek-harness-launch-options,
+  .agent-launch-directory-picker,
+  .agent-launch-directory-history-list,
+  .agent-claude-code-runtime-settings,
+  .agent-claude-code-disable-compact,
+  .agent-claude-desktop-mapping-row,
+  .agent-oauth-configuration,
+  .codex-catalog-body,
+  .usage-filter-panel,
+  .usage-stat-card,
+  .usage-data-management-action,
+  .usage-price-editor,
+  .auth-priority-target,
+  .auth-file-card,
+  .credential-quota,
+  .easy-mode-core-alert,
+  .easy-mode-stepper-item,
+  .easy-mode-choice-card,
+  .easy-mode-selected-path,
+  .simple-mode-step-status,
+  .simple-mode-step-status-item,
+  .simple-mode-core-alert,
+  .simple-mode-progress-item,
+  .simple-mode-choice,
+  .simple-mode-path-row,
+  .simple-mode-action-card,
+  .simple-mode-embedded-content,
+  .simple-mode-provider-hint,
+  .simple-mode-embedded-box,
+  .simple-mode-api-form,
+  .simple-mode-api-platforms,
+  .simple-mode-api-result,
+  .simple-mode-agent-list,
+  .simple-mode-agent-config,
+  .simple-mode-agent-detection,
+  .simple-mode-topbar
+) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* compound selectors live apart so they do not raise the list's specificity */
+:root .codex-session-metrics > div,
+:root .agent-status-grid > div,
+:root .codex-catalog-confirm > div,
+:root .custom-mirror-dialog-list > div,
+:root .auth-file-health.detailed {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* grid cards: a single top hairline, compact vertical rhythm */
+:root :is(
+  .status-card,
+  .client-api-card,
+  .config-diagnostics-setting,
+  .config-diagnostics-field,
+  .easy-mode-choice-card,
+  .simple-mode-choice,
+  .simple-mode-action-card,
+  .model-config-card
+) {
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* inline notices: plain text with a quiet left rule */
+:root :is(.inline-notice, .action-feedback.inline-notice, .management-alert, .close-dialog-error, .custom-mirror-dialog-error) {
+  padding: 4px 0 4px 10px;
+  border: 0;
+  border-left: 2px solid rgba(255, 255, 255, 0.13);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root :is(.inline-notice, .action-feedback.inline-notice, .management-alert).error {
+  border-left-color: rgba(240, 77, 77, 0.5);
+}
+
+/* 5. Buttons: 28px, radius 7, strong-line border, transparent ------------- */
+
+:root :is(
+  .secondary-button,
+  .compact-button,
+  .primary-button,
+  .danger-button,
+  .text-button,
+  .close-choice-button,
+  .usage-refresh-btn,
+  .usage-page-nav-btn,
+  .usage-col-settings-btn,
+  .usage-col-reset-btn,
+  .usage-filter-reset-btn,
+  .version-source-add-button,
+  .config-tls-browse-button,
+  .agent-launch-button,
+  .agent-codex-catalog-button,
+  .provider-health-button,
+  .provider-health-single-button,
+  .simple-mode-exit-btn,
+  .simple-mode-api-fetch-button,
+  .guide-btn-sm,
+  .codex-session-delete-button
+) {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 10px;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 7px;
+  background: transparent;
+  color: #f5f5f5;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: none;
+  transform: none;
+  transition: var(--desk-transition);
+}
+
+:root :is(
+  .secondary-button,
+  .compact-button,
+  .text-button,
+  .close-choice-button,
+  .usage-refresh-btn,
+  .usage-page-nav-btn,
+  .usage-col-settings-btn,
+  .usage-col-reset-btn,
+  .usage-filter-reset-btn,
+  .config-tls-browse-button,
+  .agent-launch-button,
+  .agent-codex-catalog-button,
+  .provider-health-button,
+  .provider-health-single-button,
+  .simple-mode-exit-btn,
+  .simple-mode-api-fetch-button,
+  .guide-btn-sm
+):hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f5f5f5;
+}
+
+:root :is(.primary-button, .close-choice-button.primary-button, .version-source-add-button) {
+  border: 1px solid #f5f5f5;
+  background: #f5f5f5;
+  color: #000;
+  font-weight: 500;
+}
+
+:root :is(.primary-button, .version-source-add-button):hover:not(:disabled) {
+  border-color: #dcdcdc;
+  background: #dcdcdc;
+  color: #000;
+}
+
+:root :is(.danger-button, .close-choice-button.danger-button, .codex-session-delete-button) {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: transparent;
+  color: #f04d4d;
+}
+
+:root :is(.danger-button, .codex-session-delete-button):hover:not(:disabled) {
+  border-color: var(--desk-bad-line);
+  background: rgba(240, 77, 77, 0.06);
+  color: #f04d4d;
+}
+
+:root :is(.primary-button, .secondary-button, .danger-button, .compact-button):disabled {
+  opacity: 0.45;
+}
+
+:root :is(.secondary-button, .compact-button, .primary-button, .danger-button) svg {
+  width: 14px;
+  height: 14px;
+}
+
+:root .text-button {
+  border-color: transparent;
+  padding: 0 4px;
+  color: #a3a3a3;
+}
+
+:root .text-button:hover:not(:disabled) {
+  border-color: transparent;
+  background: transparent;
+  color: #f5f5f5;
+}
+
+/* icon buttons: borderless glyphs with the hover tint */
+:root .icon-button,
+:root .icon-button.quiet,
+:root .icon-button.danger {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #6e6e6e;
+  box-shadow: none;
+  transition: var(--desk-transition);
+}
+
+:root .icon-button:hover:not(:disabled),
+:root .icon-button.quiet:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
+  color: #f5f5f5;
+}
+
+:root .icon-button.danger:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
+  color: #f04d4d;
+}
+
+:root .icon-button.copied,
+:root .icon-button.quiet.copied {
+  border: 0 !important;
+  background: transparent !important;
+  color: #3ecf8e !important;
+}
+
+/* inline text actions (Fetch Quota, links styled as buttons) */
+:root :is(.credential-quota-refresh, .link-button) {
+  border: 0;
+  background: transparent;
+  color: #a3a3a3;
+  font-size: 12px;
+  transition: var(--desk-transition);
+}
+
+:root :is(.credential-quota-refresh, .link-button):hover:not(:disabled) {
+  background: transparent;
+  color: #f5f5f5;
+}
+
+/* 6. Inputs: 30px, radius 7, #000, strong line, focus .4, no glow --------- */
+
+:root :where(:not(.d-root *), .d-embed *):is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']), select, textarea) {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 7px;
+  background-color: #000;
+  color: #f5f5f5;
+  font-size: 13px;
+  box-shadow: none;
+  transition: border-color var(--desk-fast) var(--desk-ease);
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']), select) {
+  height: 30px;
+  min-height: 30px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(textarea) {
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(input, textarea)::placeholder {
+  color: #6e6e6e;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']), select, textarea):focus,
+:root :where(:not(.d-root *), .d-embed *):is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']), select, textarea):focus-visible {
+  border-color: rgba(255, 255, 255, 0.4);
+  outline: none;
+  box-shadow: none;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(select) option {
+  background: #0a0a0a;
+  color: #f5f5f5;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(input[type='checkbox'], input[type='radio']) {
+  accent-color: #f5f5f5;
+}
+
+/* search / field wrappers that draw the input box themselves */
+:root :is(
+  .usage-storage-limit-editor label,
+  .model-discovery-search,
+  .thinking-model-search,
+  .agent-model-search,
+  .codex-catalog-search,
+  .agent-model-trigger,
+  .management-toolbar
+) {
+  min-height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 7px;
+  background: #000;
+  box-shadow: none;
+  transition: border-color var(--desk-fast) var(--desk-ease);
+}
+
+:root :is(
+  .usage-storage-limit-editor label,
+  .model-discovery-search,
+  .thinking-model-search,
+  .agent-model-search,
+  .codex-catalog-search,
+  .management-toolbar
+) :is(input, select),
+:root .management-toolbar :is(input, select):is(:hover, :focus, :focus-visible) {
+  height: 28px;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+:root :is(
+  .usage-storage-limit-editor label,
+  .model-discovery-search,
+  .thinking-model-search,
+  .agent-model-search,
+  .codex-catalog-search,
+  .management-toolbar
+):focus-within {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+:root .management-toolbar {
+  padding: 0 0 0 10px;
+}
+
+:root .management-toolbar select {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root .management-toolbar svg {
+  color: #6e6e6e;
+}
+
+:root .agent-model-trigger {
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+/* switches: neutral track, ok green when on (spec) */
+:root .switch-control {
+  width: 30px;
+  height: 18px;
+}
+
+:root .switch-track {
+  border: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: none;
+  transition: background-color var(--desk-fast) var(--desk-ease);
+}
+
+:root .switch-track::after {
+  width: 14px;
+  height: 14px;
+  margin: 2px;
+  background: #fff;
+  box-shadow: none;
+}
+
+:root .switch-control input:checked + .switch-track,
+:root .thinking-fast-switch input:checked + .switch-track {
+  border-color: transparent;
+  background: #3ecf8e;
+}
+
+:root .switch-control input:checked + .switch-track::after {
+  transform: translateX(12px);
+}
+
+/* 7. Badges, pills, tags: plain inline text ------------------------------- */
+
+:root :is(
+  .state-pill,
+  .state-pill.success,
+  .state-pill.error,
+  .state-pill.warning,
+  .state-pill.update,
+  .config-count,
+  .thinking-level-tags > span,
+  .thinking-source-kind,
+  .thinking-alias-list-heading > strong,
+  .thinking-alias-panel-heading > span,
+  .thinking-effort-badge,
+  .codex-session-meta > span,
+  .codex-catalog-chips span,
+  .usage-events-count-badge,
+  .usage-data-management-badge,
+  .usage-result,
+  .usage-tag-pill,
+  .usage-rank-badge,
+  .usage-collector-state,
+  .provider-health-pill,
+  .phase-badge,
+  .client-api-format-tag,
+  .app-release-notes-latest,
+  .release-notes-category,
+  .model-transfer-count,
+  .config-sensitive-words-count,
+  .simple-mode-step-badge,
+  .simple-mode-badge,
+  .simple-mode-model-tag,
+  .guide-tooltip-badge,
+  .guide-status-pill
+) {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* status text gets a leading dot, like the spec .badge */
+:root .state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #a3a3a3;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+:root .state-pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: #6e6e6e;
+}
+
+:root .state-pill.success::before { background: #3ecf8e; }
+:root .state-pill.error::before { background: #f04d4d; }
+:root :is(.state-pill.warning, .state-pill.update)::before { background: #f5a524; }
+
+/* static status dots stay, but flat */
+:root :is(.status-dot, .status-dot.success, .status-dot.error, .usage-result-dot, .agent-installed-indicator, .usage-collector-state .status-dot) {
+  box-shadow: none;
+  animation: none;
+}
+
+/* 8. Tabs: plain text on a bottom hairline, 1.5px white underline --------- */
+
+:root :where(:not(.d-root *), .d-embed *):is([role='tablist']),
+:root :is(.usage-tabs, .agent-subpage-tabs, .oauth-subpage-tabs, .config-subpage-tabs) {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+  align-self: stretch;
+  gap: 2px;
+  width: 100%;
+  min-height: 0;
+  margin: 0 0 18px;
+  padding: 0;
+  overflow-x: auto;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  scrollbar-width: none;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is([role='tablist']) > [role='tab'],
+:root :is(.usage-tabs, .agent-subpage-tabs) button {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #6e6e6e;
+  font-size: 13px;
+  font-weight: 400;
+  white-space: nowrap;
+  box-shadow: none;
+  transition: color var(--desk-fast) var(--desk-ease);
+}
+
+:root :where(:not(.d-root *), .d-embed *):is([role='tablist']) > [role='tab'] svg,
+:root .usage-tabs button svg {
+  display: none;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is([role='tablist']) > [role='tab']:hover:not(.active, [aria-selected='true']),
+:root :is(.usage-tabs, .agent-subpage-tabs) button:hover:not(.active) {
+  background: transparent;
+  color: #a3a3a3;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is([role='tablist']) > [role='tab']:is(.active, [aria-selected='true']),
+:root :is(.usage-tabs, .agent-subpage-tabs) button.active {
+  border: 0;
+  background: transparent;
+  color: #f5f5f5;
+  box-shadow: none;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is([role='tablist']) > [role='tab']:is(.active, [aria-selected='true'])::after,
+:root :is(.usage-tabs, .agent-subpage-tabs) button.active::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 1.5px;
+  background: #f5f5f5;
+}
+
+/* segmented controls: 2px padded strong-line container, active tint */
+:root :is(.routing-segmented, .agent-auth-segmented) {
+  display: inline-flex;
+  justify-self: start;
+  align-self: start;
+  width: max-content;
+  max-width: 100%;
+  height: auto;
+  gap: 0;
+  padding: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root :is(.routing-segmented, .agent-auth-segmented) button {
+  height: 22px;
+  min-height: 22px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #6e6e6e;
+  font-size: 12px;
+  font-weight: 400;
+  box-shadow: none;
+  transition: var(--desk-transition);
+}
+
+:root :is(.routing-segmented, .agent-auth-segmented) button:hover:not(:is(.active, [aria-pressed='true'], [aria-checked='true'])) {
+  background: transparent;
+  color: #a3a3a3;
+}
+
+:root :is(.routing-segmented, .agent-auth-segmented) button:is(.active, [aria-pressed='true'], [aria-checked='true']) {
+  border: 0;
+  background: rgba(255, 255, 255, 0.07);
+  color: #f5f5f5;
+}
+
+/* dark is forced: the beginner-mode theme switcher has nothing to switch */
+:root .simple-mode-theme-group {
+  display: none;
+}
+
+/* 9. Tables + lists: 40px rows on hairlines -------------------------------- */
+
+:root :where(:not(.d-root *), .d-embed *):is(table) {
+  border-collapse: collapse;
+  background: transparent;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(th, thead td) {
+  height: 32px;
+  background: #000;
+  color: #6e6e6e;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(td) {
+  height: 40px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(tr:nth-child(even), tr:nth-child(odd)) > td {
+  background: transparent;
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(tbody tr) {
+  transition: background-color var(--desk-fast) var(--desk-ease);
+}
+
+:root :where(:not(.d-root *), .d-embed *):is(tbody tr):hover > td {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:root :is(.usage-table-wrap, .usage-pricing-table-wrap) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* key/value detail lists: dense rows on hairlines */
+:root .panel-detail-grid {
+  gap: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root .panel-detail-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 40px;
+  padding: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root .panel-detail-row dt {
+  color: #6e6e6e;
+  font-size: 13px;
+}
+
+/* key list: rows carry their own hairlines; the panel hugs its rows */
+:root .config-keys-panel {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  height: auto;
+  max-height: 420px;
+}
+
+:root .config-key-list {
+  border-bottom: 0;
+}
+
+:root .config-key-row {
+  min-height: 40px;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:root .config-key-row:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* selectable lists (provider categories, backup versions): plain rows, tinted when active */
+:root :is(.provider-category-panel, .agent-backup-versions) > button,
+:root .agent-backup-modal .agent-backup-columns nav button {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #a3a3a3;
+  box-shadow: none;
+  transform: none;
+  transition: var(--desk-transition);
+}
+
+:root :is(.provider-category-panel, .agent-backup-versions) > button:hover:not(:disabled, .active),
+:root .agent-backup-modal .agent-backup-columns nav button:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.04);
+  color: #f5f5f5;
+}
+
+:root :is(.provider-category-panel, .agent-backup-versions) > button.active,
+:root .agent-backup-modal .agent-backup-columns nav button.active {
+  border: 0;
+  background: rgba(255, 255, 255, 0.07);
+  color: #f5f5f5;
+  box-shadow: none;
+}
+
+/* 10. Dialogs, popovers, menus: the one place a raised surface stays ------ */
+
+:root :is(
+  .config-dialog-backdrop,
+  .model-discovery-backdrop,
+  .install-dialog-backdrop,
+  .close-dialog-backdrop,
+  .app-confirm-backdrop,
+  .codex-catalog-backdrop
+) {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:root :is(.credential-settings-dialog, .agent-backup-modal)::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: none;
+}
+
+:root :is(
+  .config-dialog,
+  .install-dialog,
+  .close-dialog,
+  .model-discovery-dialog,
+  .credential-settings-dialog,
+  .agent-backup-modal,
+  .usage-price-sync-dialog,
+  .management-dialog,
+  .panel.management-dialog,
+  .guide-tooltip-card
+) {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 12px;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+:root :is(
+  .config-dialog,
+  .install-dialog,
+  .close-dialog,
+  .model-discovery-dialog,
+  .credential-settings-dialog,
+  .agent-backup-modal,
+  .management-dialog
+) :is(h2, h3):first-of-type {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+:root :is(
+  .sidebar-language-list,
+  .agent-model-dropdown,
+  .simple-mode-lang-menu,
+  .usage-trend-tooltip,
+  .auth-file-requests-tooltip,
+  .agent-launch-directory-history-list
+) {
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 10px;
+  background: #0a0a0a;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+:root :is(.agent-model-dropdown, .simple-mode-lang-menu, .agent-launch-directory-history-list) :is(button, [role='option']) {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  transition: var(--desk-transition);
+}
+
+:root :is(.agent-model-dropdown, .simple-mode-lang-menu, .agent-launch-directory-history-list) :is(button, [role='option']):is(:hover, .selected, [aria-selected='true']) {
+  background: rgba(255, 255, 255, 0.04);
+  color: #f5f5f5;
+}
+
+/* inside a dialog the surface is #0a0a0a; nested blocks stay flat on it */
+:root :is(.config-dialog, .install-dialog, .close-dialog, .model-discovery-dialog, .credential-settings-dialog, .agent-backup-modal, .management-dialog) :is(.panel, .empty-state, .model-discovery-content, .model-transfer-panel, .credential-settings-catalog) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* dialog fields keep the #000 well so they read against the raised surface */
+:root :is(.config-dialog, .install-dialog, .model-discovery-dialog, .credential-settings-dialog, .agent-backup-modal, .management-dialog) :is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']), select, textarea) {
+  background-color: #000;
+}
+
+/* dialog footers sit on a hairline */
+:root :is(.config-dialog-actions, .install-dialog-actions, .usage-column-dialog-footer, .app-update-dialog-actions) {
+  gap: 8px;
+}
+
+/* dialog internals: option rows sit flat on the dialog surface */
+:root .usage-column-option {
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: transparent;
+}
+
+:root .usage-column-option:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:root .model-discovery-row {
+  border-radius: 6px;
+  transition: var(--desk-transition);
+}
+
+:root .model-discovery-row svg {
+  color: #6e6e6e;
+}
+
+:root .model-discovery-row:is(:hover, .selected) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:root .model-discovery-row:hover svg {
+  color: #f5f5f5;
+}
+
+/* floating toasts keep a surface (popover rules) */
+:root .app-notice-stack .action-feedback.inline-notice,
+:root .app-notice-stack .action-feedback.inline-notice:is(.error, .info) {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 10px;
+  background: #0a0a0a;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* 11. Charts: #000 plot, hairline grid ------------------------------------- */
+
+:root :is(.usage-trend-chart, .usage-trend-panel) svg line,
+:root .usage-trend-grid {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-dasharray: none;
+}
+
+:root .usage-trend-baseline {
+  stroke: rgba(255, 255, 255, 0.13);
+}
+
+:root :is(.usage-trend-chart, .usage-trend-plot) {
+  background: #000;
+}
+
+:root .usage-trend-chart {
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+
+:root :is(.usage-trend-y-axis, .usage-trend-x-axis) {
+  color: #6e6e6e;
+  font-size: 11px;
+}
+
+:root :is(.usage-token-bar-track, .credential-quota-track) {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* 12. Motion: no continuous repaint loops ---------------------------------- */
+
+/* spec motion: 120ms on color / background / border only */
+:root :is(.client-api-card, .client-api-value-row code, .auth-file-card, .usage-stat-card, .real-provider-row, .usage-trend-legend-item) {
+  transform: none;
+  transition: var(--desk-transition);
+}
+
+:root :is(.usage-token-bar-fill, .usage-category-fill, .credential-quota-track i) {
+  transition: none;
+}
+
+:root :is(
+  .spin,
+  .nav-update-indicator.processing,
+  .install-progress-track.unknown.is-running .install-progress-fill,
+  .simple-guide-pulse-dot,
+  .guide-spotlight-box,
+  .guide-tooltip-card,
+  .guide-focus-highlight,
+  .guide-interactive-card,
+  .credential-quota-track.indeterminate i
+) {
+  animation: none;
+}
+
+:root :is(.guide-spotlight-backdrop, .guide-dimmed-overlay) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* 13. Page specifics ------------------------------------------------------- */
+
+/* nested flattened containers drop horizontal padding so text aligns */
+:root :is(
+  .version-list-item,
+  .version-metric-tile,
+  .app-release-notes-heading,
+  .app-release-notes-body,
+  .app-release-notes-footer,
+  .config-management-description,
+  .config-management-form,
+  .config-network-field,
+  .config-delete-warning,
+  .model-config-summary,
+  .usage-filter-panel,
+  .codex-session-notice,
+  .codex-session-repair-panel,
+  .credential-quota,
+  .thinking-level-config,
+  .provider-advanced-settings,
+  .provider-cloak-settings,
+  .agent-claude-code-runtime-settings,
+  .agent-claude-code-disable-compact,
+  .agent-oauth-configuration,
+  .simple-mode-topbar,
+  .simple-mode-step-status,
+  .simple-mode-embedded-box,
+  .simple-mode-api-form,
+  .simple-mode-api-result,
+  .simple-mode-agent-config,
+  .simple-mode-agent-detection,
+  .easy-mode-core-alert,
+  .simple-mode-core-alert,
+  .usage-data-management-action
+) {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* a section that opens its parent section does not repeat the hairline */
+:root :is(.panel, .app-release-notes, .version-source-row, .agent-core-setting-section, .usage-data-management-panel) > :is(.panel, .app-release-notes, .version-source-row, .agent-core-setting-section, .config-network-section, .config-sensitive-words-card):first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* icon chips, index chips, step numbers: glyph only */
+:root :is(
+  .config-diagnostics-setting-icon,
+  .config-software-setting-icon,
+  .config-key-index,
+  .client-api-logo,
+  .simple-mode-heading-icon,
+  .simple-mode-choice-icon,
+  .agents-page-embedded .agent-minimal-client-icon,
+  .easy-mode-stepper-number,
+  .simple-mode-step-status-number,
+  .easy-mode-checklist li > span,
+  .simple-mode-checklist li > span,
+  .usage-category-pct,
+  .thinking-model-source em,
+  .thinking-alias-route-source > small em,
+  .codex-session-meta > span,
+  .thinking-level-tags > span
+) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root :is(.config-key-index, .usage-category-pct) {
+  padding: 0;
+  color: #6e6e6e;
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+:root :is(.easy-mode-stepper-number, .simple-mode-step-status-number) {
+  color: #6e6e6e;
+}
+
+:root :is(.easy-mode-stepper-item, .simple-mode-step-status-item).active :is(.easy-mode-stepper-number, .simple-mode-step-status-number) {
+  background: transparent;
+  color: #f5f5f5;
+}
+
+/* toggle chips (1M context, model aliases) */
+:root :is(.agent-claude-context-toggle, .agent-claude-context-toggle:has(input:checked), .codex-catalog-switch, .agent-claude-desktop-mapping-filter) {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root .agent-claude-desktop-mapping-row:has(.agent-claude-context-toggle input:checked) {
+  border-color: transparent;
+  background: transparent;
+}
+
+:root .agent-claude-desktop-mapping-row {
+  padding: 8px 0;
+}
+
+/* beginner-mode guide button: ordinary secondary button */
+:root :is(.simple-mode-guide-toggle, .simple-mode-highlight-button) {
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  border-radius: 7px;
+  background: transparent !important;
+  color: #f5f5f5 !important;
+  box-shadow: none;
+}
+
+:root :is(.simple-mode-guide-toggle, .simple-mode-highlight-button):hover {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+:root .simple-mode-guide-toggle.active {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+:root .simple-mode-task-footer .primary-button {
+  padding: 0 14px;
+}
+
+/* dark-mark logos (OpenAI, Grok/xAI, Kimi, Pi, OpenCode) vanish on #000:
+   flip luminance but keep hue. Matches inlined SVG titles and file names. */
+:root :where(:not(.d-root *), .d-embed *):is(img):is(
+  [src*='title%3eOpenAI%3c' i],
+  [src*='title%3eGrok%3c' i],
+  [src*='title%3eKimi%3c' i],
+  [src*='title%3eOpenCode%3c' i],
+  [src*='%2309090b' i],
+  [src*='openai-light'],
+  [src*='grok.svg'],
+  [src*='kimi-light'],
+  [src*='opencode.svg'],
+  [src*='pi-logo-on-light']
+) {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* --- Home (KernelPage): runtime control + API access endpoints --- */
+
+:root .panel-heading {
+  align-items: center;
+  min-height: 28px;
+  margin-bottom: 8px;
+}
+
+:root .button-row.control-action-row,
+:root .panel-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+:root .button-row.control-action-row > button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+:root .client-api-value-row code,
+:root[data-theme='dark'] .client-api-value-row code,
+:root[data-theme='dark'] .client-api-value-row code:hover {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #f5f5f5;
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+}
+
+:root .client-api-key-code {
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+}
+
+:root[data-theme='dark'] .client-api-logo,
+:root .client-api-logo {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root .client-api-logo img {
+  width: 18px;
+  height: 18px;
+}
+
+:root[data-theme='dark'] .client-api-card,
+:root[data-theme='dark'] .client-api-card:hover,
+:root .client-api-card,
+:root .client-api-card:hover {
+  min-height: 40px;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root .client-api-grid {
+  gap: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root .client-api-card-heading {
+  align-items: center;
+  gap: 8px;
+}
+
+:root .client-api-card-heading > div {
+  min-width: 0;
+  overflow: hidden;
+}
+
+:root .client-api-card-heading :is(strong, span:not(.client-api-logo)) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:root .client-api-card-heading strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+:root .client-api-format-tag {
+  color: #6e6e6e;
+  font-size: 12px;
+}
+
+/* --- API Access: provider list --- */
+
+:root .real-provider-row {
+  min-height: 40px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: background-color var(--desk-fast) var(--desk-ease);
+}
+
+:root .real-provider-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* --- OAuth sign-in: providers as a list of rows --- */
+
+:root .oauth-browser-picker {
+  grid-template-columns: auto minmax(180px, 240px);
+  gap: 4px 10px;
+  color: #6e6e6e;
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: none;
+}
+
+:root .oauth-browser-picker > span {
+  color: #6e6e6e;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+:root .oauth-browser-picker small {
+  color: #6e6e6e;
+  font-size: 11px;
+}
+
+:root .oauth-grid {
+  display: block;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* icon + name | one-line hint (tertiary) | compact actions */
+:root .oauth-card,
+:root .panel.oauth-card {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) auto;
+  grid-template-areas: 'title body actions';
+  grid-template-rows: none;
+  align-items: center;
+  gap: 4px 16px;
+  min-height: 48px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: transparent;
+}
+
+:root .oauth-card > .provider-title-row {
+  grid-area: title;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+}
+
+:root .oauth-card .provider-logo {
+  width: 20px;
+  height: 20px;
+}
+
+:root .oauth-card .provider-title-row > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+:root .oauth-card .provider-title-row h2 {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+:root .oauth-card > .oauth-card-body {
+  grid-area: body;
+  gap: 8px;
+}
+
+:root .oauth-card .oauth-hint {
+  overflow: hidden;
+  color: #6e6e6e;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:root .oauth-card > .management-card-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+:root .oauth-card .management-card-actions > button {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+/* repeated per-row actions read as secondary; one white CTA per view */
+:root :is(.oauth-card, .simple-mode-provider-card-foot) .primary-button {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: transparent;
+  color: #f5f5f5;
+  font-weight: 400;
+}
+
+:root :is(.oauth-card, .simple-mode-provider-card-foot) .primary-button:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f5f5f5;
+}
+
+:root .oauth-auth-url-box {
+  gap: 6px;
+  padding: 0;
+}
+
+:root .oauth-auth-url-value {
+  color: #a3a3a3;
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+}
+
+:root .oauth-auth-url-label {
+  color: #6e6e6e;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+@container workspace (max-width: 720px) {
+  :root .oauth-card,
+  :root .panel.oauth-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'title actions' 'body body';
+  }
+
+  :root .oauth-card .oauth-hint {
+    padding-left: 30px;
+  }
+}
+
+/* --- Authentication files: dense grid on hairlines, no boxes --- */
+
+/* cells share hairlines; the right/bottom edges are clipped by overflow so the
+   grid has inner rules only. Negative inline margin aligns cell text with the
+   page title. */
+:root .auth-file-card-grid {
+  gap: 0;
+  margin: 0 -16px;
+  padding: 0;
+  overflow: hidden;
+}
+
+:root .auth-file-card {
+  gap: 10px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.08), 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:root .auth-files-panel {
+  padding-top: 0;
+  border-top: 0;
+}
+
+:root .auth-files-toolbar {
+  margin-bottom: 12px;
+}
+
+:root .auth-card-header {
+  gap: 10px;
+}
+
+:root .auth-card-header .provider-logo {
+  width: 20px;
+  height: 20px;
+}
+
+:root .auth-card-provider,
+:root :is(.auth-card-filename, .auth-card-meta, .credential-quota-empty, .auth-file-requests-unavailable, .auth-file-requests-window) {
+  color: #6e6e6e;
+  font-size: 12px;
+}
+
+:root .auth-card-identity strong {
+  color: #f5f5f5;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+:root .auth-card-filename {
+  font-family: var(--font-family-mono);
+}
+
+:root .auth-file-requests,
+:root .credential-quota,
+:root .auth-card-actions {
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root .auth-card-actions {
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin-top: auto;
+}
+
+:root .auth-card-actions .compact-button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+:root .auth-card-actions .icon-button {
+  width: 28px;
+  height: 28px;
+}
+
+:root .auth-file-requests-heading > span:first-child,
+:root .credential-quota-heading strong {
+  color: #a3a3a3;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* --- Agent configuration: plain client rows left, flat config right --- */
+
+:root .agent-workbench {
+  gap: 24px;
+}
+
+:root .agent-client-list,
+:root .panel.agent-client-list {
+  padding: 0 12px 0 0;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: transparent;
+}
+
+:root .agent-list-items {
+  inset: 0 12px 0 0;
+  gap: 1px;
+  padding: 0;
+}
+
+:root .agent-list-items > button,
+:root .agent-list-items button {
+  grid-template-columns: 18px minmax(0, 1fr) 6px;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #a3a3a3;
+  box-shadow: none;
+  transform: none;
+  transition: var(--desk-transition);
+}
+
+:root .agent-list-items button:hover:not(:disabled, .active) {
+  background: rgba(255, 255, 255, 0.04);
+  color: #f5f5f5;
+}
+
+:root .agent-list-items button.active {
+  border: 0;
+  background: rgba(255, 255, 255, 0.07);
+  color: #f5f5f5;
+  box-shadow: none;
+}
+
+:root .agent-list-items :is(.agent-client-icon, .provider-logo) {
+  width: 18px;
+  height: 18px;
+}
+
+:root .agent-list-items button > span {
+  gap: 0;
+}
+
+:root .agent-list-items strong {
+  color: inherit;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+:root .agent-list-items button.active strong {
+  color: #f5f5f5;
+}
+
+:root .agent-list-items small {
+  display: block;
+  overflow: hidden;
+  color: #6e6e6e;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:root .agent-installed-indicator {
+  width: 6px;
+  height: 6px;
+}
+
+:root .agent-config-panel,
+:root .panel.agent-config-panel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+:root .agent-status-grid {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+:root .agent-status-grid > div {
+  padding: 12px 14px;
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.08), 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:root .agent-status-grid span {
+  color: #6e6e6e;
+  font-size: 12px;
+}
+
+:root .agent-status-grid strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+:root .agent-save-bar {
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #000;
+  box-shadow: none;
+}
+
+/* --- Usage: compact filters, single KPI strip, charts on #000 --- */
+
+:root .usage-topbar {
+  align-items: center;
+  gap: 12px 16px;
+  margin-bottom: 0;
+}
+
+:root .usage-topbar {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+:root .usage-page-navigation {
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px 16px;
+  order: 0;
+}
+
+:root .usage-page-navigation .usage-tabs {
+  flex: 1 0 100%;
+  order: 1;
+  margin-bottom: 0;
+}
+
+:root .usage-topbar-actions {
+  order: 1;
+  margin-top: 4px;
+}
+
+:root .usage-collector-state {
+  gap: 6px;
+  color: #6e6e6e;
+  font-size: 12px;
+}
+
+:root .usage-collector-state strong {
+  color: #a3a3a3;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+:root .usage-filter-panel,
+:root .panel.usage-filter-panel {
+  padding: 0;
+  border-top: 0;
+}
+
+:root .usage-filter-group {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+:root .usage-filter-item {
+  grid-column: auto;
+  gap: 4px;
+}
+
+:root .usage-filter-label {
+  color: #6e6e6e;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+:root .usage-filter-item select {
+  height: 28px;
+  min-height: 28px;
+  font-size: 12px;
+}
+
+/* KPI strip: one hairline box; cells divided by clipped 1px shadows so it
+   stays correct when the grid wraps */
+:root .usage-stat-grid {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+:root .usage-stat-card,
+:root .panel.usage-stat-card {
+  gap: 6px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.08), 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:root .usage-stat-card-label {
+  color: #6e6e6e;
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+:root .usage-stat-card-value {
+  color: #f5f5f5;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+:root .usage-section-heading span {
+  color: #6e6e6e;
+  font-size: 12px;
+}
+
+:root :is(.usage-token-info, .usage-trend-legend) {
+  font-size: 12px;
+}
+
+:root .usage-events-summary {
+  height: auto;
+  min-height: 44px;
+  flex: 0 0 auto;
+  row-gap: 8px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+:root .usage-storage-limit-editor label {
+  min-height: 30px;
+}
+
+:root .usage-trend-legend-item {
+  border-color: transparent;
+  background: transparent;
+  color: #a3a3a3;
+  font-size: 12px;
+}
+
+:root .usage-rank-badge,
+:root .usage-rank-badge.top {
+  color: #a3a3a3;
+}
+
+:root .usage-rank-badge.top {
+  color: #f5f5f5;
+}
+
+/* --- Settings sections (ConfigPanel) --- */
+
+:root :is(.config-software-panel > .config-panel-heading, .config-software-content, .config-sensitive-words-panel) {
+  width: 100%;
+  margin: 0;
+}
+
+:root .config-software-setting-row {
+  min-height: 52px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root :is(.config-panel-heading p, .config-management-description, .config-network-field small, .config-diagnostics-field small) {
+  color: #6e6e6e;
+  font-size: 12px;
+}
+
+/* network / routing fields: rows size to content (upstream pins 154px rows) */
+:root .config-network-grid {
+  grid-auto-rows: auto;
+  gap: 16px 24px;
+}
+
+:root .config-network-field {
+  height: auto;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* --- Versions --- */
+
+:root .version-card-actions {
+  gap: 8px;
+}
+
+:root .version-card-actions button {
+  flex: 0 0 auto;
+  min-height: 28px;
+}
+
+:root .version-list-item {
+  min-height: 0;
+  gap: 16px;
+  padding-top: 16px;
+  padding-bottom: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* 14. Legacy nav hook (kept until the old shell is removed) ----------------- */
+
+:root .nav-update-indicator,
+:root .nav-update-indicator.processing {
+  background: #f5a524;
+  box-shadow: none;
+  animation: none;
+}
+
+/* 15. Embedded in the new shell ------------------------------------------- */
+
+/*
+ * The shell wraps each legacy page in .d-embed and owns the page padding and
+ * width. Legacy container queries are written against a container named
+ * "workspace", so the wrapper provides one.
+ */
+:root .d-embed {
+  container: workspace / inline-size;
+}
+
+:root .d-embed :is(.page, .management-page, .kernel-page, .config-page, .home-page) {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* the shell draws the page header; a legacy header inside keeps its row
+   layout but loses any outer spacing that would double the shell's */
+:root .d-embed .page > .management-header:first-child {
+  margin-top: 0;
+}
+
+/* the shell hides the legacy h1; drop the empty header row it leaves, and
+   let action-only headers sit right-aligned without the title's height */
+:root .d-embed .management-header:has(> div > h1):not(:has(> :nth-child(2))) {
+  display: none;
+}
+
+:root .d-embed .management-header > div:has(> h1:only-child) {
+  display: none;
+}
+
+:root .d-embed .management-header {
+  justify-content: flex-end;
+  min-height: 0;
+  margin-bottom: 16px;
+}
+
+/* nested legacy page inside a tab panel (Authentication files, Quota) */
+:root .d-embed .page .page {
+  gap: 16px;
+}
+
+/* the legacy main element is not present when embedded; keep scroll regions
+   from fixing their own viewport height */
+:root .d-embed :is(.agent-workbench, .usage-records-page) {
+  min-height: 0;
+}

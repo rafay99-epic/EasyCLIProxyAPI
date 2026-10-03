@@ -170,6 +170,25 @@ async fn resolve_app_update(
     app: &tauri::AppHandle,
     gui_config_state: &GuiConfigState,
 ) -> Result<(AppUpdateInfo, Option<PendingAppUpdate>), String> {
+    if APP_SELF_UPDATE_DISABLED {
+        let version = env!("CARGO_PKG_VERSION").to_string();
+        return Ok((
+            AppUpdateInfo {
+                current_version: version.clone(),
+                latest_version: version,
+                update_available: false,
+                release_url: String::new(),
+                release_notes: HashMap::new(),
+                published_at: String::new(),
+                auto_update_supported: false,
+                download_size_bytes: None,
+                unsupported_reason: Some(
+                    "In-app updates are disabled in CPA Desk. Rebuild from source to update.".to_string(),
+                ),
+            },
+            None,
+        ));
+    }
     let _detection_guard = VERSION_SOURCE_DETECTION_LOCK.lock().await;
     let config = gui_config_state.snapshot()?;
     let proxy_url = config.proxy_url.clone();
@@ -668,6 +687,9 @@ pub(crate) async fn start_app_update(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppUpdateState>,
 ) -> Result<(), String> {
+    if APP_SELF_UPDATE_DISABLED {
+        return Err("In-app updates are disabled in CPA Desk. Rebuild from source to update.".to_string());
+    }
     if portable_update_platform_key().is_none() {
         return Err("The current platform does not support in-app automatic upgrades".to_string());
     }

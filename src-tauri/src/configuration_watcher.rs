@@ -1,3 +1,4 @@
+use crate::agents::agent_home_dir;
 use super::{
     agent_managed_paths, apply_gui_managed_settings, consume_software_write,
     core_config_settings_from_value, core_install_dir, gui_config_path, is_loopback_host,
@@ -57,9 +58,7 @@ fn patch_core_from_gui_config_if_valid(config: &GuiConfigFile) -> Result<(), Str
 }
 
 fn tracked_configuration_paths(app: &tauri::AppHandle) -> Result<Vec<PathBuf>, String> {
-    let home = app
-        .path()
-        .home_dir()
+    let home = agent_home_dir(&app)
         .map_err(|error| format!("Failed to get user directory: {error}"))?;
     let mut paths = vec![
         gui_config_path()?,

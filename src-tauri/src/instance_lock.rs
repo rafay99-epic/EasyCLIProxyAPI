@@ -1,7 +1,7 @@
 use sha2::{Digest, Sha256};
 use std::{fs, path::Path};
 
-const APP_INSTANCE_LOCK_PREFIX: &str = "EasyCLIProxyAPI-instance";
+const APP_INSTANCE_LOCK_PREFIX: &str = "CPADesk-instance";
 
 pub(crate) struct AppInstanceGuard {
     #[cfg(windows)]
@@ -10,9 +10,21 @@ pub(crate) struct AppInstanceGuard {
     _file: fs::File,
 }
 
+/// Takes the single-instance lock. A self-restart (e.g. after the production import)
+/// starts the new process just before the old one exits, so a held lock is retried for
+/// up to 3 seconds before this launch gives up as a duplicate.
 pub(crate) fn acquire_app_instance_guard() -> Result<AppInstanceGuard, String> {
     let executable_dir = super::executable_dir()?;
-    acquire_app_instance_guard_for(&executable_dir)
+    let mut attempts = 0;
+    loop {
+        match acquire_app_instance_guard_for(&executable_dir) {
+            Err(error) if error.contains("already running") && attempts < 20 => {
+                attempts += 1;
+                std::thread::sleep(std::time::Duration::from_millis(150));
+            }
+            result => return result,
+        }
+    }
 }
 
 pub(crate) fn app_instance_key(executable_dir: &Path) -> String {

@@ -942,6 +942,10 @@ async function consumeCodexResetCreditSnapshot(file: AuthFile): Promise<QuotaSta
 const quotaRequests = new Map<string, Promise<QuotaState>>();
 const quotaMutationRequests = new Map<string, Promise<QuotaState>>();
 
+/** Raw OAuth usage payload (5h, weekly, Fable weekly) for one Claude credential. */
+export const fetchClaudeUsagePayload = (authIndex: string) =>
+  requestQuotaPayload(authIndex, endpointByProvider.claude, headersByProvider.claude);
+
 export function loadQuota(file: AuthFile): Promise<QuotaState> {
   const key = quotaKey(file);
   const reset = quotaMutationRequests.get(key);

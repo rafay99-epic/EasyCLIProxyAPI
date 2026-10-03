@@ -321,6 +321,7 @@ export const jaOverrides = {
   'app.desktopConsole': 'デスクトップコンソール',
   'app.navigation': 'メインナビゲーション',
   'app.nav.easy': '初心者モード',
+  'app.nav.overview': '概要',
   'app.nav.home': 'ホーム',
   'app.nav.versions': 'バージョン管理',
   'app.nav.kernel': 'コア',

@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod agents;
+mod session_events;
+mod migration;
 mod app_settings;
 mod app_update;
 mod claude_catalog;
@@ -44,6 +46,8 @@ use provider_health::{
 };
 
 use agents::*;
+use session_events::*;
+use migration::*;
 use app_settings::*;
 use app_update::*;
 use core_config::*;
@@ -122,6 +126,11 @@ const CODEX_MODEL_CATALOG_SOURCE_FILE: &str = "model-catalog.json";
 const MAX_CODEX_MODEL_CATALOG_BYTES: usize = 4 * 1024 * 1024;
 const APP_UPDATE_PROGRESS_EVENT: &str = "app-update-progress";
 const PORTABLE_APP_MANIFEST_FILE: &str = "portable-app.json";
+/// Bundle identifier of this fork. Also names the macOS data directory, so it must
+/// match `identifier` in tauri.conf.json and differ from upstream's `com.cpa.gui`.
+pub(crate) const APP_IDENTIFIER: &str = "com.rafay.cpadesk";
+/// Upstream's updater would swap this fork for an upstream build, so it stays off.
+const APP_SELF_UPDATE_DISABLED: bool = true;
 #[cfg(windows)]
 const PORTABLE_APP_BINARY: &str = "EasyCLIProxyAPI.exe";
 #[cfg(target_os = "linux")]
@@ -898,7 +907,7 @@ impl Default for GuiConfigFile {
     fn default() -> Self {
         Self {
             locale: "en".to_string(),
-            port: 8317,
+            port: 8327,
             allow_lan: false,
             host: "127.0.0.1".to_string(),
             run_on_startup: false,
@@ -921,15 +930,17 @@ impl Default for GuiConfigFile {
             redis_usage_queue_retention_seconds: DEFAULT_REDIS_USAGE_QUEUE_RETENTION_SECONDS,
             request_log: false,
             plugins_enabled: false,
-            routing_strategy: "round-robin".to_string(),
+            routing_strategy: "fill-first".to_string(),
             proxy_url: String::new(),
             proxy_override: false,
             download_source: VersionDownloadSource::Github,
             custom_download_mirrors: Vec::new(),
             active_custom_download_mirror: String::new(),
             prefer_gitcode_downloads: false,
-            routing_session_affinity: false,
-            routing_session_affinity_ttl: String::new(),
+            routing_session_affinity: true,
+            // Just over the 1h prompt-cache TTL the core requests, so a pin never
+            // expires while its account still holds a warm cache.
+            routing_session_affinity_ttl: "70m".to_string(),
             disable_cooling: DEFAULT_DISABLE_COOLING,
             request_retry: DEFAULT_REQUEST_RETRY,
             max_retry_credentials: DEFAULT_MAX_RETRY_CREDENTIALS,
@@ -2472,6 +2483,7 @@ fn main() {
 
     let app = app
         .setup(move |app| {
+            load_agent_config_target(app.handle());
             if let Err(error) = network_proxy::refresh(app.state::<GuiConfigState>().inner()) {
                 eprintln!("Failed to read startup proxy settings: {error}");
             }
@@ -2636,6 +2648,12 @@ fn main() {
             repair_pi_provider,
             uninstall_pi_provider,
             check_codex_oauth_login,
+            get_agent_config_target,
+            set_agent_config_live,
+            read_session_activity,
+            get_migration_status,
+            run_production_migration,
+            restart_after_migration,
             update_codex_model_catalog,
             get_deepseek_harness_model_catalog_editor,
             save_deepseek_harness_model_catalog_editor,

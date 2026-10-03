@@ -246,7 +246,7 @@ pub(crate) async fn preview_agent_config_backup(
     client: String,
     id: String,
 ) -> Result<BackupPreview, String> {
-    let home = app.path().home_dir().map_err(|e| e.to_string())?;
+    let home = agent_home_dir(&app).map_err(|e| e.to_string())?;
     let config = app.state::<GuiConfigState>().snapshot()?;
     Ok(prepare_restore_plan(&config, &client, &home, &id)
         .await?
@@ -260,7 +260,7 @@ pub(crate) async fn restore_agent_config_backup(
     id: String,
     revision: String,
 ) -> Result<AgentConfigActionResult, String> {
-    let home = app.path().home_dir().map_err(|e| e.to_string())?;
+    let home = agent_home_dir(&app).map_err(|e| e.to_string())?;
     let config = app.state::<GuiConfigState>().snapshot()?;
     let plan = prepare_restore_plan(&config, &client, &home, &id).await?;
     let result = execute_restore_plan(&config, plan, &revision).await?;

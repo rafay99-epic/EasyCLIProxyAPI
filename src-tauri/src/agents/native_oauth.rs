@@ -299,7 +299,7 @@ pub(crate) fn close_codex_configuration(home: &Path) -> Result<AgentConfigAction
 pub(crate) fn close_codex_config_modification(
     app: tauri::AppHandle,
 ) -> Result<AgentConfigActionResult, String> {
-    let home = app.path().home_dir().map_err(|_| "Failed to get user directory")?;
+    let home = agent_home_dir(&app).map_err(|_| "Failed to get user directory")?;
     let _guard = AGENT_CONFIG_FILE_LOCK
         .lock()
         .map_err(|_| "Agent configuration file lock is poisoned")?;
@@ -518,7 +518,7 @@ pub(crate) fn apply_codex_cpa_configuration(
 pub(crate) fn restore_codex_official_config(
     app: tauri::AppHandle,
 ) -> Result<AgentConfigActionResult, String> {
-    let home = app.path().home_dir().map_err(|_| "Failed to get user directory")?;
+    let home = agent_home_dir(&app).map_err(|_| "Failed to get user directory")?;
     let _guard = AGENT_CONFIG_FILE_LOCK
         .lock()
         .map_err(|_| "Agent configuration file lock is poisoned")?;
