@@ -1,0 +1,34 @@
+src/components/desk/MigrationSheet.tsx
+  s_4f76173e1cf9cc::t_d1a5a5d543e5db 1-134
+src-tauri/src/migration.rs
+  s_4f76173e1cf9cc::t_200384155e8dbb 1-286
+  s_4f76173e1cf9cc::t_803b475a4b2930 287
+src-tauri/src/instance_lock.rs
+  s_4f76173e1cf9cc::t_d62d28e6f92da8 13-15,18-27
+src-tauri/src/main.rs
+  s_4f76173e1cf9cc::t_d63f9b0836d91f 5,50,2654-2656
+src/App.tsx
+  s_4f76173e1cf9cc::t_d5c77af2519835 251
+src/deskNav.tsx
+  s_4f76173e1cf9cc::t_3c1285a1081719 17-18
+src/mocks/browserMockRuntime.ts
+  s_4f76173e1cf9cc::t_5b758a3ac8f388 379-380,862-874
+src/pages/desk/OverviewView.tsx
+  s_4f76173e1cf9cc::t_99911a2e7a9dca 5,12,157,159-162,191-197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4186a0c0dcdf4cfbc10eb2f04853ca8fe9d9af80",
+  "prompts": {},
+  "sessions": {
+    "s_4f76173e1cf9cc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "720b89d8-2aa2-47d9-bf4f-d7ec17e8db84",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Abdul Rafay <99marafay@gmail.com>"
+    }
+  }
+}
