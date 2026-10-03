@@ -378,6 +378,7 @@ function createState(scenario: BrowserMockScenario) {
     agentConfigLive: false,
     migratedAt: undefined as string | undefined,
     migrationChecks: 0,
+    updateReady: false,
     coreStatus: createCoreStatus(scenario),
     guiSettings: {
       host: '127.0.0.1',
@@ -859,6 +860,16 @@ export function createBrowserMockRuntime(
       case 'launch_agent': return null;
 
       case 'get_core_status': return clone(state.coreStatus);
+      case 'get_build_channel': return 'prod';
+      case 'get_update_status':
+      case 'check_for_update': return state.updateReady
+        ? { phase: 'ready', currentVersion: '1.0.0', version: '1.1.0', notes: '### New\n\n- Menu bar popover\n- Signed in-app updates', publishedAt: null, progress: 100, checkedAtMs: Date.now(), error: null }
+        : (state.updateReady = command === 'check_for_update', { phase: 'up-to-date', currentVersion: '1.0.0', version: null, notes: null, publishedAt: null, progress: null, checkedAtMs: Date.now(), error: null });
+      case 'install_update_and_restart': return null;
+      case 'set_tray_gauge':
+      case 'resize_tray_panel':
+      case 'open_main_window':
+      case 'quit_app': return null;
       case 'get_migration_status':
         // Production "quits" after a couple of checks so both sheet states can be seen.
         state.migrationChecks += 1;

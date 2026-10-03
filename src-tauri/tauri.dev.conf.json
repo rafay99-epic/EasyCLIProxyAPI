@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "CPA Desk Dev",
+  "identifier": "com.rafay.cpadesk.dev",
+  "bundle": {
+    "icon": [
+      "icons-dev/icon.png",
+      "icons-dev/32x32.png",
+      "icons-dev/128x128.png",
+      "icons-dev/128x128@2x.png",
+      "icons-dev/icon.icns",
+      "icons-dev/icon.ico"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/rafay99-epic/EasyCLIProxyAPI/releases/download/dev-latest/latest.json"
+      ]
+    }
+  }
+}

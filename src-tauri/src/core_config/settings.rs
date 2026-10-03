@@ -1796,6 +1796,10 @@ pub(crate) fn sanitize_gui_config_at(
     persistent_auth_dir: &Path,
 ) -> Result<bool, String> {
     let mut changed = false;
+    if IS_DEV_BUILD && config.port == PROD_PORT {
+        config.port = DEFAULT_CORE_PORT;
+        changed = true;
+    }
     let normalized_locale = normalize_app_locale(&config.locale);
     if config.locale != normalized_locale {
         config.locale = normalized_locale.to_string();

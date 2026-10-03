@@ -1,4 +1,5 @@
 use super::*;
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 use crate::native_i18n::{native_operation_failed, native_text, NativeText};
 
 #[cfg(target_os = "macos")]
@@ -7,14 +8,7 @@ use objc2_app_kit::NSStatusItemBehavior;
 use objc2_foundation::NSString;
 
 #[cfg(target_os = "macos")]
-const MACOS_TRAY_ID: &str = "macos-tray";
-
-#[cfg(target_os = "macos")]
-#[derive(Default)]
-pub(crate) struct MacosTrayClickState {
-    last_click: Option<Instant>,
-    sequence: u64,
-}
+pub(crate) const MACOS_TRAY_ID: &str = "macos-tray";
 
 #[cfg(target_os = "macos")]
 pub(crate) fn set_macos_dock_visible(app_handle: &tauri::AppHandle, visible: bool) {
@@ -60,120 +54,32 @@ pub(crate) fn show_main_window(app_handle: &tauri::AppHandle) {
 }
 
 #[cfg(target_os = "macos")]
-pub(crate) fn show_macos_tray_menu<R: tauri::Runtime>(tray: &TrayIcon<R>) {
-    let result = tray.with_inner_tray_icon(|tray_icon| {
-        let Some(status_item) = tray_icon.ns_status_item() else {
-            return;
-        };
-        let mtm = MainThreadMarker::new().expect("tray menu must be shown on the main thread");
-        if let Some(menu) = status_item.menu(mtm) {
-            #[allow(deprecated)]
-            status_item.popUpStatusItemMenu(&menu);
-        }
-    });
-
-    if let Err(error) = result {
-        eprintln!("Failed to show the tray menu: {error}");
-    }
-}
-
-#[cfg(target_os = "macos")]
 pub(crate) fn setup_macos_tray(app: &mut tauri::App<tauri::Wry>) -> tauri::Result<()> {
-    let locale = app
-        .state::<GuiConfigState>()
-        .snapshot()
-        .map(|config| config.locale)
-        .unwrap_or_else(|_| "en".to_string());
-    let open_main_window = MenuItem::with_id(
-        app,
-        "open-main-window",
-        native_text(&locale, NativeText::OpenMainWindow),
-        true,
-        None::<&str>,
-    )?;
-    let quit = MenuItem::with_id(
-        app,
-        "quit",
-        native_text(&locale, NativeText::Quit),
-        true,
-        None::<&str>,
-    )?;
-    let menu = Menu::with_items(app, &[&open_main_window, &quit])?;
-    let click_state = Arc::new(Mutex::new(MacosTrayClickState::default()));
-    let double_click_interval = Duration::from_secs_f64(NSEvent::doubleClickInterval());
-
+    // Any click opens the popover, which has Open and Quit. No native menu is attached:
+    // AppKit would show an attached menu on every click and the popover would never open.
     let tray = TrayIconBuilder::with_id(MACOS_TRAY_ID)
-        .icon(
-            app.default_window_icon()
-                .cloned()
-                .expect("application icon is required for the tray"),
-        )
-        .menu(&menu)
-        .show_menu_on_left_click(false)
-        .on_menu_event(move |app_handle, event| match event.id().as_ref() {
-            "open-main-window" => show_main_window(app_handle),
-            "quit" => app_handle.exit(0),
-            _ => {}
-        })
-        .on_tray_icon_event(move |tray, event| {
-            if !matches!(
-                event,
-                TrayIconEvent::Click {
-                    button: MouseButton::Left,
-                    button_state: MouseButtonState::Up,
-                    ..
-                }
-            ) {
-                return;
-            }
-
-            let now = Instant::now();
-            let Ok(mut state) = click_state.lock() else {
-                eprintln!("Failed to read tray click state");
-                return;
-            };
-            state.sequence += 1;
-            let sequence = state.sequence;
-
-            if state
-                .last_click
-                .is_some_and(|last_click| now.duration_since(last_click) <= double_click_interval)
+        .icon(tauri::image::Image::new_owned(
+            crate::menubar::gauge_glyph(None),
+            36,
+            36,
+        ))
+        .icon_as_template(true)
+        .tooltip(if IS_DEV_BUILD { "CPA Desk Dev" } else { "CPA Desk" })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button_state: MouseButtonState::Up,
+                rect,
+                ..
+            } = event
             {
-                state.last_click = None;
-                drop(state);
-                show_main_window(tray.app_handle());
-                return;
+                crate::menubar::toggle_tray_panel(tray.app_handle(), rect);
             }
-
-            state.last_click = Some(now);
-            drop(state);
-
-            let app_handle = tray.app_handle().clone();
-            let click_state = Arc::clone(&click_state);
-            let tray_id = tray.id().clone();
-            thread::spawn(move || {
-                thread::sleep(double_click_interval);
-                let should_show_menu = match click_state.lock() {
-                    Ok(mut state) if state.sequence == sequence => {
-                        state.last_click = None;
-                        true
-                    }
-                    Ok(_) => false,
-                    Err(_) => {
-                        eprintln!("Failed to read tray click state");
-                        false
-                    }
-                };
-                if !should_show_menu {
-                    return;
-                }
-
-                if let Some(tray) = app_handle.tray_by_id(&tray_id) {
-                    show_macos_tray_menu(&tray);
-                }
-            });
         })
         .build(app)?;
+    if IS_DEV_BUILD {
+        tray.set_title(Some("DEV"))?;
+    }
+    crate::menubar::create_tray_panel(app.handle())?;
 
     tray.with_inner_tray_icon(|tray_icon| {
         if let Some(status_item) = tray_icon.ns_status_item() {

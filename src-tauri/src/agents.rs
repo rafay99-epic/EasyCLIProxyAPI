@@ -11,8 +11,9 @@ static AGENT_CONFIG_LIVE: AtomicBool = AtomicBool::new(false);
 /// Whether agent configuration targets the real home directory (~/.claude, ~/.codex, ...).
 /// Off by default so this fork can run next to a production install without rewriting
 /// the client configs that production depends on.
+/// Always off in a Dev build.
 pub(crate) fn agent_config_live() -> bool {
-    AGENT_CONFIG_LIVE.load(Ordering::Relaxed)
+    !IS_DEV_BUILD && AGENT_CONFIG_LIVE.load(Ordering::Relaxed)
 }
 
 /// Home directory that every agent-configuration read and write resolves against.
@@ -41,6 +42,8 @@ pub(crate) fn load_agent_config_target(app: &tauri::AppHandle) {
 pub(crate) struct AgentConfigTarget {
     live: bool,
     sandbox_dir: String,
+    /// Dev builds can't leave the sandbox.
+    locked: bool,
 }
 
 #[tauri::command]
@@ -53,11 +56,15 @@ pub(crate) fn get_agent_config_target(app: tauri::AppHandle) -> Result<AgentConf
     Ok(AgentConfigTarget {
         live: agent_config_live(),
         sandbox_dir: sandbox_dir.to_string_lossy().into_owned(),
+        locked: IS_DEV_BUILD,
     })
 }
 
 #[tauri::command]
 pub(crate) fn set_agent_config_live(app: tauri::AppHandle, live: bool) -> Result<AgentConfigTarget, String> {
+    if IS_DEV_BUILD && live {
+        return Err("CPA Desk Dev always writes client configs to its sandbox.".to_string());
+    }
     let data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
     let marker = data_dir.join(AGENT_LIVE_MARKER);
     if live {

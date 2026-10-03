@@ -254,6 +254,9 @@
 .d-root .d-srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; min-height: 52px; padding: 10px 0; border-bottom: 1px solid var(--d-line); }
 .d-root .d-srow .d-k b { display: block; color: var(--d-text); font-weight: 500; }
 .d-root .d-srow .d-k span { color: var(--d-text-3); font-size: 12px; }
+.d-root .d-notes { max-height: 240px; margin: 8px 0 0; overflow: auto; color: var(--d-text-2); font: 12px/1.6 var(--d-font); white-space: pre-wrap; }
+.d-root .d-tray-update { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--d-line); font-size: 12px; }
+.d-root .d-tray-update .d-btn { margin-left: auto; }
 
 /* Legacy pages embedded in the new frame. The frame owns the page title, so legacy
    headings are hidden; Usage keeps its own because its tabs sit next to it. */
@@ -263,6 +266,24 @@
 .d-root .d-embed .version-page-header { display: none; }
 .d-root .d-embed .home-page-header { display: none; }
 .d-root .d-embed-usage .usage-page-navigation > h1 { margin: 0; color: var(--d-text); font-size: 22px; font-weight: 600; letter-spacing: -.015em; }
+
+/* ---------------- Menu bar popover (window "tray") ---------------- */
+html.d-tray-window, html.d-tray-window body, html.d-tray-window #root { background: transparent !important; overflow: hidden; }
+.d-root.d-tray-root { height: auto; background: transparent; }
+.d-root .d-tray { width: 340px; overflow: hidden; border: 1px solid var(--d-line-2); border-radius: 12px; background: #0b0b0b; }
+.d-root .d-tray-h { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 8px 0 14px; border-bottom: 1px solid var(--d-line); }
+.d-root .d-tray-h b { font-weight: 600; }
+.d-root .d-tray-upd { margin-left: auto; font-size: 12px; }
+.d-root .d-tray-dev { padding: 0 5px; border-radius: 4px; background: var(--d-warn); color: #000; font: 700 10px var(--d-font); letter-spacing: .04em; }
+.d-root .d-tray-row { display: grid; grid-template-columns: minmax(0, 1fr) 70px 104px; gap: 10px; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--d-line); }
+.d-root .d-tray-row.d-head { padding-top: 6px; padding-bottom: 6px; color: var(--d-text-3); font-size: 11px; }
+.d-root .d-tray-row .d-who b { font-weight: 500; }
+.d-root .d-tray-row .d-who .d-badge { display: inline-flex; margin-top: 2px; font-size: 11px; }
+.d-root .d-tray-row .d-mini .d-top { font-size: 11px; }
+.d-root .d-tray-msg { padding: 10px 14px; border-bottom: 1px solid var(--d-line); font-size: 12px; }
+.d-root .d-tray-login { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--d-line); color: var(--d-text-2); font-size: 12px; cursor: pointer; }
+.d-root .d-tray-f { display: flex; gap: 6px; padding: 10px 14px; }
+.d-root .d-tray-quit { margin-left: auto; }
 
 /* ---------------- Responsive ---------------- */
 @container d-main (max-width: 900px) {

@@ -2,6 +2,10 @@ use super::*;
 
 pub(crate) static CORE_OPERATION_LOCK: Mutex<()> = Mutex::new(());
 const BUNDLED_CORE_HANDLED_VERSION_FILE: &str = "cpa-gui-bundled-core-handled.txt";
+/// Upstream core releases don't carry this fork's patches. The patched core ships inside
+/// CPA Desk releases and is installed from the bundle, so downloading cores is off.
+const CORE_DOWNLOADS_LOCKED: bool = true;
+const CORE_DOWNLOADS_LOCKED_MESSAGE: &str = "The patched core ships with CPA Desk updates; upstream core downloads are disabled.";
 
 pub(crate) fn lock_core_operation(
     process_state: &CoreProcessState,
@@ -142,6 +146,9 @@ pub(crate) async fn check_latest_core(
     app: tauri::AppHandle,
     gui_config_state: tauri::State<'_, GuiConfigState>,
 ) -> Result<CoreLatest, String> {
+    if CORE_DOWNLOADS_LOCKED {
+        return Err(CORE_DOWNLOADS_LOCKED_MESSAGE.to_string());
+    }
     let _detection_guard = VERSION_SOURCE_DETECTION_LOCK.lock().await;
     let platform = current_core_platform()?;
     let config = gui_config_state.snapshot()?;
@@ -309,6 +316,9 @@ pub(crate) async fn install_core_version(
     window: tauri::Window,
     version: Option<String>,
 ) -> Result<CoreInstallResult, String> {
+    if CORE_DOWNLOADS_LOCKED {
+        return Err(CORE_DOWNLOADS_LOCKED_MESSAGE.to_string());
+    }
     tauri::async_runtime::spawn_blocking(move || {
         let _guard = lock_core_operation(app.state::<CoreProcessState>().inner())?;
         let state = app.state::<CoreDownloadState>();
