@@ -296,6 +296,8 @@ function AppContent() {
 
   return (
     <div className="d-root">
+      {/* The window uses an overlay title bar: this strip is where it can be dragged. */}
+      <div className="d-titlebar" data-tauri-drag-region />
       <MenubarBridge onCoreCommand={(command) => void control.run(command)} />
       <div className={`d-app${rail ? ' d-rail' : ''}`}>
         <aside className="d-side" aria-label="Sidebar">

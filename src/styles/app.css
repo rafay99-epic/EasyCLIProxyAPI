@@ -24,7 +24,7 @@
   --d-mono: "SF Mono", ui-monospace, Menlo, monospace;
   --d-row: 40px;
   --d-side-w: 232px;
-  --d-rail-w: 56px;
+  --d-rail-w: 72px;
   --d-ease: cubic-bezier(.2, 0, 0, 1);
   --d-fast: 120ms;
   --d-base: 180ms;
@@ -51,7 +51,10 @@
 .d-root .d-app { display: grid; grid-template-columns: var(--d-side-w) minmax(0, 1fr); height: 100%; }
 .d-root .d-app.d-rail { grid-template-columns: var(--d-rail-w) minmax(0, 1fr); }
 
-.d-root .d-side { display: flex; flex-direction: column; min-width: 0; padding: 10px 8px; border-right: 1px solid var(--d-line); color: var(--d-side-text); background: var(--d-bg); }
+/* Overlay title bar: the window chrome is hidden and the traffic lights float over the
+   sidebar's top band, so nothing interactive sits in the top 36px. */
+.d-root .d-titlebar { position: fixed; top: 0; left: 0; right: 0; z-index: 5; height: 36px; }
+.d-root .d-side { display: flex; flex-direction: column; min-width: 0; padding: 40px 8px 10px; border-right: 1px solid var(--d-line); color: var(--d-side-text); background: var(--d-bg); }
 .d-root .d-side-top { display: flex; align-items: center; gap: 8px; height: 36px; margin-bottom: 8px; padding: 0 6px 0 10px; }
 .d-root .d-side-top b { color: var(--d-text); font-size: 13px; font-weight: 600; white-space: nowrap; }
 .d-root .d-iconbtn { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--d-text-3); cursor: pointer; transition: background var(--d-fast) var(--d-ease), color var(--d-fast) var(--d-ease); }
@@ -97,7 +100,7 @@
 @keyframes d-tip { from { opacity: 0; transform: translate(-3px, -50%); } }
 
 .d-root .d-main { min-width: 0; overflow: auto; container-type: inline-size; container-name: d-main; }
-.d-root .d-page { max-width: 1080px; margin: 0 auto; padding: 28px 32px 80px; }
+.d-root .d-page { max-width: 1080px; margin: 0 auto; padding: 40px 32px 80px; }
 .d-root .d-page.d-wide { max-width: 1280px; }
 .d-root .d-enter { animation: d-enter var(--d-base) var(--d-ease); }
 @keyframes d-enter { from { opacity: 0; transform: translateY(4px); } }
@@ -294,7 +297,7 @@ html.d-tray-window, html.d-tray-window body, html.d-tray-window #root { backgrou
   .d-root .d-settings { grid-template-columns: 170px minmax(0, 1fr); gap: 20px; }
 }
 @container d-main (max-width: 700px) {
-  .d-root .d-page { padding: 20px 18px 64px; }
+  .d-root .d-page { padding: 40px 18px 64px; }
   .d-root .d-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
   .d-root .d-hero .d-stat:last-child { display: none; }
   .d-root .d-acct-row { grid-template-columns: 16px 18px minmax(0, 1fr) minmax(90px, 120px); row-gap: 0; }
