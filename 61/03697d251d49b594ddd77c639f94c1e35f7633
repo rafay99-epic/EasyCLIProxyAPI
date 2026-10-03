@@ -1,0 +1,140 @@
+tests/limits.test.ts
+  s_4f76173e1cf9cc::t_9c41cc54657ff0 1-112
+  s_4f76173e1cf9cc::t_56423b55d748b6 113-150
+src/services/limits.ts
+  s_4f76173e1cf9cc::t_31872653061c30 1-295
+  s_4f76173e1cf9cc::t_6c01eced301b5d 296-347
+src/styles/app.css
+  s_4f76173e1cf9cc::t_cba0a8d8914bf6 1-290
+  s_4f76173e1cf9cc::t_8e7d4ed0a33287 291-297
+src/components/desk/Sheet.tsx
+  s_4f76173e1cf9cc::t_afb60d56ae3c11 1-37
+design/cpa-desk-design-v2.html
+  s_4f76173e1cf9cc::t_48fbc740af5299 1-787
+  s_4f76173e1cf9cc::t_a54534f6d2b496 788-789
+src/pages/desk/OverviewView.tsx
+  s_4f76173e1cf9cc::t_067057a9e0eb16 1-240
+src/styles/desk.css
+  s_4f76173e1cf9cc::t_98f31a5e168975 1,3-8,13-19,21,44-48,51,54,57-63,65-66,68,83,88,91,93-94,96-99,102-103,105-110,117-126,145,200,202-203,205-238,241-247,249,255-257,259-265,268-271,278-280,282-286,288-290,292-296,302,305-306,310-311,313-314,316-319,322,327-329,333-334,340-341,343-373,375-480,482-487,489-491,496-497,499-522,526,529,531,535-536,538-558,562-564,567,569-571,574-577,579,581-583,587-589,596-605,608-609,611-615,617-619,621,623-626,629-631,634-639,655-656,658-659,664-665,667-669,671,680-681,684-687,689-694,696-698,790-791,797-838,840,844-845,857-858,862-863,865-868,870-872,881,883,885-887,889-892,902-904,906,909,911-912,918-925,927,929-931,950-953,958,960,964,966-967,969,971-972,985-991,993,1000-1002,1005-1011,1016,1018-1022,1064,1082-1084,1086-1094,1096-1100,1102-1116,1119,1135-1144,1148,1157-1158,1164-1168,1239-1240,1245,1250-1251,1253-1272,2042
+  s_4f76173e1cf9cc::t_7441dbfc077824 2,9-12,20,22-43,49-50,52-53,55-56,64,67,69-82,84-87,89-90,92,95,100-101,104,111-116,127-144,146-199,201,204,239-240,248,250-254,258,266-267,272-277,281,287,291,297-301,303-304,307-309,312,315,320-321,323-326,330-332,335-339,342,374,481,488,492-495,498,523-525,527-528,530,532-534,537,559-561,565-566,568,572-573,578,580,584-586,590-595,606-607,610,616,620,622,627-628,632-633,640-654,657,660-663,666,670,672-679,682-683,688,695,699-789,792-796,839,841-843,846-856,859-861,864,869,873-880,882,884,888,893-901,905,907-908,910,913-917,926,928,932-949,954-957,959,961-963,965,968,970,973-984,992,994-999,1003-1004,1012-1015,1017,1023-1063,1065-1081,1085,1095,1101,1117-1118,1120-1134,1145-1147,1149-1156,1159-1163,1169-1238,1241-1244,1246-1249,1252,1273-2040,2043-2044
+  s_4f76173e1cf9cc::t_738cacf6ebded7 2041,2045-2152
+src/App.tsx
+  s_4f76173e1cf9cc::t_04c42a494c1ada 1-4,6,9-10,14-15,17-25,27,29-31,33-39,41-50,52-54,56-57,64-66,73-77,79,81-113,115-217,219,221-234,237-239,241-258,261-262,264,266,272-274,277-278,280-281,283,286-290,293-300,302-308,311,313-316,318-319,324-325,327-331,334,337-339,341-344,347-349,351,354-355,359-361,363-365,373
+FORK.md
+  s_4f76173e1cf9cc::t_7c02de6249c144 1-60
+src/components/desk/ui.tsx
+  s_4f76173e1cf9cc::t_646a09f9c61396 1-108
+src-tauri/src/session_events.rs
+  s_4f76173e1cf9cc::t_d36ba980001ebe 1-215
+src/deskNav.tsx
+  s_4f76173e1cf9cc::t_c17814d6039742 1-46
+src/components/desk/CommandPalette.tsx
+  s_4f76173e1cf9cc::t_c62293395967f4 1-86
+src/pages/desk/SettingsView.tsx
+  s_4f76173e1cf9cc::t_c05d933a3cf333 1-124
+src/components/AgentConfigTargetNotice.tsx
+  s_4f76173e1cf9cc::t_6ab2b4c10224fc 1-55
+src/pages/desk/AccountsView.tsx
+  s_4f76173e1cf9cc::t_fe83792070789f 1-408
+src/pages/desk/ClientsView.tsx
+  s_4f76173e1cf9cc::t_26d2ddf2688727 1-80
+  s_4f76173e1cf9cc::t_dbf8fa1470a6c5 81-84
+src/services/routingController.ts
+  s_4f76173e1cf9cc::t_c2eb6ec4d7a3cd 1-255
+build-desk.sh
+  s_4f76173e1cf9cc::t_4076f3b073a35b 1-24
+core-version.txt
+  s_4f76173e1cf9cc::t_a6a520d221e46c 1
+index.html
+  s_4f76173e1cf9cc::t_7b8bafac40e864 21
+src-tauri/Cargo.lock
+  s_4f76173e1cf9cc::t_a4fa5389cb497f 625
+src-tauri/Cargo.toml
+  s_4f76173e1cf9cc::t_0efd9592412778 4
+src-tauri/src/agents.rs
+  s_4f76173e1cf9cc::t_ef485fae7c2b86 2-71
+src-tauri/src/agents/backups.rs
+  s_4f76173e1cf9cc::t_3d156ff2d831b3 472,484,497
+src-tauri/src/agents/backups/restore.rs
+  s_4f76173e1cf9cc::t_c846e3e8b45838 249,263
+src-tauri/src/agents/commands.rs
+  s_4f76173e1cf9cc::t_0380ce9c032079 18,169,196,230,255,275,290,876,917,1086,1133,1154
+src-tauri/src/agents/deepseek_harness.rs
+  s_4f76173e1cf9cc::t_a68b4719cef4d9 729,744
+src-tauri/src/agents/discovery.rs
+  s_4f76173e1cf9cc::t_cda19dad6abbb0 8-10
+src-tauri/src/agents/native_oauth.rs
+  s_4f76173e1cf9cc::t_a2754e09f116b6 302,521
+src-tauri/src/agents/templates.rs
+  s_4f76173e1cf9cc::t_6ef34176f98448 283,308
+src-tauri/src/app_update.rs
+  s_4f76173e1cf9cc::t_1ecb2444f843e4 173-191,690-692
+src-tauri/src/codex_sessions.rs
+  s_4f76173e1cf9cc::t_c54c9d23669306 1,18,198,217,231,249,264,288-290
+src-tauri/src/configuration_watcher.rs
+  s_4f76173e1cf9cc::t_716f85a915edc8 1,61
+src-tauri/src/core_config/settings.rs
+  s_4f76173e1cf9cc::t_8a056f0a08f366 382-387,449-454,658-664
+src-tauri/src/core_config/yaml.rs
+  s_4f76173e1cf9cc::t_871e00781fed7e 1462
+src-tauri/src/core_runtime.rs
+  s_4f76173e1cf9cc::t_238e2f0d79fc62 1748
+src-tauri/src/instance_lock.rs
+  s_4f76173e1cf9cc::t_f93437c7119852 4
+src-tauri/src/main.rs
+  s_4f76173e1cf9cc::t_9d0acaffd988ad 4,48,127-131,908,931,938-941,2484,2649-2651
+src-tauri/src/native_i18n.rs
+  s_4f76173e1cf9cc::t_030c452e7de174 36-40,55-59,74-78,93-97
+src-tauri/src/tests/app_settings.rs
+  s_4f76173e1cf9cc::t_28a4ef6e1d7c3a 83-84,100-102,210-219
+src-tauri/src/tests/core_config.rs
+  s_4f76173e1cf9cc::t_aa8300090fcb3a 1104,1532,2075,2079-2081,2114-2121
+src-tauri/src/tray.rs
+  s_4f76173e1cf9cc::t_261fd09fb47517 602
+src-tauri/tauri.conf.json
+  s_4f76173e1cf9cc::t_1e7c6071844a74 3-4,15
+src-tauri/tauri.desk.conf.json
+  s_4f76173e1cf9cc::t_42c70dd2f855e6 1-9
+src/i18n/ja.ts
+  s_4f76173e1cf9cc::t_aae0f88471d022 324
+src/i18n/locales/en.ts
+  s_4f76173e1cf9cc::t_4f6c29b4cfeab9 273,451,1497
+src/i18n/locales/zh-CN.ts
+  s_4f76173e1cf9cc::t_b145765fe99c56 272
+src/main.tsx
+  s_4f76173e1cf9cc::t_f26e24f630a5ae 9
+src/mocks/browserMockRuntime.ts
+  s_4f76173e1cf9cc::t_f73079d7de9af8 275-289,378,625-632,636-638,860-874
+src/navigation.ts
+  s_4f76173e1cf9cc::t_9bbbbbfef4a17d 1,3-6,10
+src/pages/AgentsPage.tsx
+  s_4f76173e1cf9cc::t_d0af161c20c856 805-806,811,2033
+src/pages/ConfigPanel.tsx
+  s_4f76173e1cf9cc::t_9d13cac140c028 84,142-146,200-207,997-998,1082-1083
+src/services/quotaService.ts
+  s_4f76173e1cf9cc::t_e11894e0915194 945-948
+src/styles/index.css
+  s_4f76173e1cf9cc::t_8e51447e99af0e 4
+src/theme.ts
+  s_4f76173e1cf9cc::t_b5db0f469361fb 9-10,12-13,17,20-21,37-38,40,67,72-73
+tests/navigationAndUpdate.test.ts
+  s_4f76173e1cf9cc::t_cf26020c8b07d1 6-13
+tests/uiLocalization.test.ts
+  s_4f76173e1cf9cc::t_1a6c0b50d751ca 29-33,37-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6103697d251d49b594ddd77c639f94c1e35f7633",
+  "prompts": {},
+  "sessions": {
+    "s_4f76173e1cf9cc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "720b89d8-2aa2-47d9-bf4f-d7ec17e8db84",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Abdul Rafay <99marafay@gmail.com>"
+    }
+  }
+}
