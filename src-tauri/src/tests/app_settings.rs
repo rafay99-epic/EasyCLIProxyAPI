@@ -81,7 +81,7 @@ fn gui_config_defaults_are_stable() {
     let content = toml::to_string_pretty(&config).unwrap();
 
     // Fork defaults: own port next to production, cache-safe routing.
-    assert!(content.contains("port = 8327"));
+    assert!(content.contains(&format!("port = {}", crate::DEFAULT_CORE_PORT)));
     assert!(content.contains("allow-lan = false"));
     assert!(content.contains("run-on-startup = false"));
     assert!(content.contains("start-core-on-launch = true"));
@@ -214,6 +214,24 @@ fn physical_window_size_uses_display_scale_and_ignores_minimized_sizes() {
 fn data_dir_identifier_matches_bundle_and_never_upstream() {
     let conf: serde_json::Value =
         serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
-    assert_eq!(conf["identifier"], crate::APP_IDENTIFIER);
+    let dev: serde_json::Value =
+        serde_json::from_str(include_str!("../../tauri.dev.conf.json")).unwrap();
+    let expected = if crate::IS_DEV_BUILD { &dev["identifier"] } else { &conf["identifier"] };
+    assert_eq!(*expected, crate::APP_IDENTIFIER);
     assert_ne!(crate::APP_IDENTIFIER, "com.cpa.gui");
+    // Dev must be a different app from Prod: own identifier (data dir) and name.
+    assert_eq!(dev["identifier"], "com.rafay.cpadesk.dev");
+    assert_ne!(dev["identifier"], conf["identifier"]);
+    assert_ne!(dev["productName"], conf["productName"]);
+    assert_ne!(crate::DEFAULT_CORE_PORT, crate::PROD_PORT);
+}
+
+#[test]
+fn dev_build_never_takes_the_prod_port() {
+    let mut config = crate::GuiConfigFile { port: crate::PROD_PORT, ..Default::default() };
+    let dir = std::env::temp_dir().join(format!("cpa-dev-port-{}", std::process::id()));
+    let _ = crate::sanitize_gui_config_at(&mut config, &dir, &dir.join("oauth"));
+    let expected = if crate::IS_DEV_BUILD { crate::DEFAULT_CORE_PORT } else { crate::PROD_PORT };
+    assert_eq!(config.port, expected);
+    let _ = std::fs::remove_dir_all(dir);
 }

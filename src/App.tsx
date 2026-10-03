@@ -8,13 +8,15 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { BarChart3, Gauge, PanelLeft, Plug, Search, Settings, Users, X } from 'lucide-react';
 import { CoreRuntimeProvider, useCoreRuntime, type CoreStatus } from './coreRuntime';
-import { CoreUpdateProvider, useCoreUpdate } from './coreUpdate';
-import { AppUpdateDialog, AppUpdateProvider, useAppUpdate } from './appUpdate';
-import { appUpdateIndicatorState } from './appUpdateModel';
+import { CoreUpdateProvider } from './coreUpdate';
+import { AppUpdateDialog, AppUpdateProvider } from './appUpdate';
 import { canOpenAppPage } from './navigation';
 import { DeskNavProvider, useDeskNav, type DeskPage, type SettingsSection } from './deskNav';
 import { useDialogFocusTrap } from './components/useDialogFocusTrap';
 import { CommandPalette, type Command } from './components/desk/CommandPalette';
+import { MenubarBridge } from './components/desk/MenubarBridge';
+import { useBuildChannel } from './services/deskSnapshot';
+import { useDeskUpdate } from './services/deskUpdate';
 import { shortName } from './components/desk/ui';
 import { runRoutingTick, useRoutingController, useRoutingState } from './services/routingController';
 import { useI18n } from './i18n';
@@ -124,9 +126,7 @@ function CoreMenu({ rail, control, onGo }: {
   const [open, setOpen] = useState(false);
   const [port, setPort] = useState<number | null>(null);
   const { status, busy, run } = control;
-  const { hasUpdate: coreHasUpdate } = useCoreUpdate();
-  const { hasUpdate: appHasUpdate, processing } = useAppUpdate();
-  const indicator = appUpdateIndicatorState(appHasUpdate, coreHasUpdate, processing);
+  const { ready: updateReady } = useDeskUpdate();
 
   useEffect(() => {
     void invoke<{ port: number }>('get_gui_settings').then((settings) => setPort(settings.port)).catch(() => setPort(null));
@@ -154,7 +154,7 @@ function CoreMenu({ rail, control, onGo }: {
         onClick={() => setOpen((value) => !value)}>
         <span className={`d-dot ${tone}`} />
         <span className="d-label">{label}</span>
-        {indicator ? <span className="d-label d-t3" style={{ marginLeft: 'auto' }}>{indicator === 'processing' ? 'Updating' : 'Update'}</span> : null}
+        {updateReady ? <span className="d-label d-ok" style={{ marginLeft: 'auto' }}>Update</span> : null}
       </button>
       {open ? (
         <>
@@ -174,7 +174,7 @@ function CoreMenu({ rail, control, onGo }: {
             )}
             <div className="d-sep" />
             <button type="button" role="menuitem" onClick={() => act(() => onGo('versions'))}>
-              Versions and updates{indicator === 'available' ? <span className="d-t3" style={{ marginLeft: 'auto' }}>New</span> : null}
+              Versions and updates{updateReady ? <span className="d-ok" style={{ marginLeft: 'auto' }}>Ready</span> : null}
             </button>
             <button type="button" role="menuitem" onClick={() => act(() => onGo('core'))}>Core settings</button>
             <button type="button" role="menuitem" onClick={() => act(() => void invoke('open_core_logs_directory').catch(() => undefined))}>Open logs folder</button>
@@ -211,6 +211,8 @@ function AppContent() {
   const [rail, toggleRail] = useSidebarRail();
   const [palette, setPalette] = useState(false);
   const [closePrompt, setClosePrompt] = useState<WindowsClosePrompt | null>(null);
+  const channel = useBuildChannel();
+  const deskUpdate = useDeskUpdate();
   useRoutingController(coreReady);
 
   const current = pages.find((item) => item.id === page) ?? pages[0];
@@ -248,13 +250,15 @@ function AppContent() {
     })),
     { id: 'sign-in', label: 'Add account', hint: 'Sign in', run: () => go('accounts', { signIn: true }) },
     { id: 'api-keys', label: 'API keys', run: () => go('accounts', { accountsTab: 'keys' }) },
-    { id: 'import', label: 'Import from EasyCLIProxyAPI', run: () => go('overview', { migrate: true }) },
+    ...(channel === 'dev' ? [] : [{ id: 'import', label: 'Import from EasyCLIProxyAPI', run: () => go('overview', { migrate: true }) }]),
     { id: 'refresh', label: 'Refresh limits', run: () => void runRoutingTick(true) },
+    { id: 'check-update', label: 'Check for updates', run: () => { go('settings', { settingsSection: 'versions' }); void deskUpdate.check(); } },
+    ...(deskUpdate.ready ? [{ id: 'install-update', label: `Restart to update to ${deskUpdate.status?.version ?? 'the new version'}`, run: () => void deskUpdate.install() }] : []),
     { id: 'sidebar', label: 'Toggle sidebar', hint: '⌘\\', run: toggleRail },
     control.status?.running
       ? { id: 'restart', label: 'Restart core', run: () => void control.run('restart_core_process') }
       : { id: 'start', label: 'Start core', run: () => void control.run('start_core_process') },
-  ].filter((command) => !command.id.startsWith('page-accounts') || coreReady), [control, coreReady, go, routing.accounts, toggleRail]);
+  ].filter((command) => !command.id.startsWith('page-accounts') || coreReady), [channel, control, coreReady, deskUpdate, go, routing.accounts, toggleRail]);
 
   // Windows only: the native close button asks whether to quit or hide to the tray.
   useEffect(() => {
@@ -292,10 +296,11 @@ function AppContent() {
 
   return (
     <div className="d-root">
+      <MenubarBridge onCoreCommand={(command) => void control.run(command)} />
       <div className={`d-app${rail ? ' d-rail' : ''}`}>
         <aside className="d-side" aria-label="Sidebar">
           <div className="d-side-top">
-            <b>CPA Desk</b>
+            <b>{channel === 'dev' ? 'CPA Desk Dev' : 'CPA Desk'}</b>
             <button type="button" className="d-iconbtn" aria-label="Toggle sidebar" title="Toggle sidebar  ⌘\" onClick={toggleRail}>
               <PanelLeft className="d-icon" aria-hidden="true" />
             </button>

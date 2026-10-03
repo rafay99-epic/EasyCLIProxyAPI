@@ -29,7 +29,7 @@ const technicalPlaceholders = new Set([
 // CPA Desk's own shell and pages are English-only by design (the fork dropped the
 // language switcher); upstream components keep their translation boundaries.
 const forkOnly = new Set(['desk']);
-const forkOnlyFiles = new Set(['App.tsx', 'AgentConfigTargetNotice.tsx']);
+const forkOnlyFiles = new Set(['App.tsx', 'AgentConfigTargetNotice.tsx', 'TrayPanel.tsx']);
 
 function componentFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

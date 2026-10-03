@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
-type AgentConfigTarget = { live: boolean; sandboxDir: string };
+type AgentConfigTarget = { live: boolean; sandboxDir: string; locked?: boolean };
 
 export function AgentConfigTargetNotice({ onChange }: { onChange: () => void }) {
   const [target, setTarget] = useState<AgentConfigTarget | null>(null);
@@ -38,7 +38,9 @@ export function AgentConfigTargetNotice({ onChange }: { onChange: () => void }) 
           : 'Writes to CPA Desk only. Your real ~/.claude and ~/.codex are untouched.'}
       </span>
       <span style={{ display: 'flex', gap: 12, marginLeft: 'auto' }}>
-        {target.live ? (
+        {target.locked ? (
+          <span className="d-t3">Always on in CPA Desk Dev</span>
+        ) : target.live ? (
           <button type="button" className="d-link" onClick={() => void switchTo(false)}>Back to sandbox</button>
         ) : confirming ? (
           <>

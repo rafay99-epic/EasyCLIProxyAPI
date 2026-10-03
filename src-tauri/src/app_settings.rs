@@ -790,6 +790,9 @@ pub(crate) fn set_app_autostart_enabled(
     app: &tauri::AppHandle,
     enabled: bool,
 ) -> Result<(), String> {
+    if IS_DEV_BUILD && enabled {
+        return Err("Launch at login is disabled in CPA Desk Dev.".to_string());
+    }
     let manager = app.autolaunch();
     if enabled {
         manager

@@ -1459,7 +1459,7 @@ pub(crate) fn core_config_settings_from_value(
                 .ok_or_else(|| "port must be an integer between 1 and 65535".to_string())
         })
         .transpose()?
-        .unwrap_or(8327);
+        .unwrap_or(crate::DEFAULT_CORE_PORT);
     let auth_dir = v8_or_legacy(&["oauth", "auth-dir"], &["auth-dir"])
         .map(|value| {
             value

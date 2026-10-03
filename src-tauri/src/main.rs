@@ -3,6 +3,9 @@
 mod agents;
 mod session_events;
 mod migration;
+mod updates;
+#[cfg(target_os = "macos")]
+mod menubar;
 mod app_settings;
 mod app_update;
 mod claude_catalog;
@@ -57,13 +60,9 @@ use futures_util::StreamExt;
 use instance_lock::*;
 #[cfg(target_os = "macos")]
 use objc2::MainThreadMarker;
-#[cfg(target_os = "macos")]
-use objc2_app_kit::NSEvent;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::sync::atomic::{AtomicBool, Ordering};
-#[cfg(target_os = "macos")]
-use std::sync::Arc;
 use std::{
     collections::{HashMap, HashSet},
     env, fs,
@@ -81,14 +80,12 @@ use tar::Archive;
 use tauri::menu::PredefinedMenuItem;
 #[cfg(target_os = "macos")]
 use tauri::tray::{MouseButtonState, TrayIcon};
-#[cfg(any(
-    target_os = "linux",
-    target_os = "macos",
-    target_os = "windows"
-))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+use tauri::tray::{TrayIconBuilder, TrayIconEvent};
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 use tauri::{
     menu::{Menu, MenuItem},
-    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
+    tray::MouseButton,
 };
 use tauri::{Emitter, LogicalSize, Manager};
 use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
@@ -126,9 +123,38 @@ const CODEX_MODEL_CATALOG_SOURCE_FILE: &str = "model-catalog.json";
 const MAX_CODEX_MODEL_CATALOG_BYTES: usize = 4 * 1024 * 1024;
 const APP_UPDATE_PROGRESS_EVENT: &str = "app-update-progress";
 const PORTABLE_APP_MANIFEST_FILE: &str = "portable-app.json";
-/// Bundle identifier of this fork. Also names the macOS data directory, so it must
-/// match `identifier` in tauri.conf.json and differ from upstream's `com.cpa.gui`.
-pub(crate) const APP_IDENTIFIER: &str = "com.rafay.cpadesk";
+const fn is_dev_channel(channel: Option<&str>) -> bool {
+    match channel {
+        Some(value) => {
+            let bytes = value.as_bytes();
+            bytes.len() == 3 && bytes[0] == b'd' && bytes[1] == b'e' && bytes[2] == b'v'
+        }
+        None => false,
+    }
+}
+/// Build channel, compiled in by build-desk.sh (`CPA_DESK_CHANNEL=dev`). Dev is a separate
+/// app with its own identifier, data dir and port, the agent sandbox locked on, and the
+/// production import and launch-at-login off, so development can never touch Prod.
+pub(crate) const IS_DEV_BUILD: bool = is_dev_channel(option_env!("CPA_DESK_CHANNEL"));
+/// Bundle identifier. Also names the macOS data directory, so it must match `identifier`
+/// in tauri.conf.json (Prod) or tauri.dev.conf.json (Dev); setup refuses to start otherwise.
+pub(crate) const APP_IDENTIFIER: &str = if IS_DEV_BUILD { "com.rafay.cpadesk.dev" } else { "com.rafay.cpadesk" };
+#[cfg(target_os = "macos")]
+fn menubar_state() -> menubar::MenubarState {
+    menubar::MenubarState::default()
+}
+#[cfg(not(target_os = "macos"))]
+fn menubar_state() {}
+
+/// Lets the UI label Dev builds and hide controls that are locked in Dev.
+#[tauri::command]
+fn get_build_channel() -> &'static str {
+    if IS_DEV_BUILD { "dev" } else { "prod" }
+}
+/// Port Prod serves on. A Dev build never listens here, whatever its config says.
+pub(crate) const PROD_PORT: u16 = 8317;
+/// Default port for a fresh install of this channel.
+pub(crate) const DEFAULT_CORE_PORT: u16 = if IS_DEV_BUILD { 8337 } else { 8327 };
 /// Upstream's updater would swap this fork for an upstream build, so it stays off.
 const APP_SELF_UPDATE_DISABLED: bool = true;
 #[cfg(windows)]
@@ -907,7 +933,7 @@ impl Default for GuiConfigFile {
     fn default() -> Self {
         Self {
             locale: "en".to_string(),
-            port: 8327,
+            port: DEFAULT_CORE_PORT,
             allow_lan: false,
             host: "127.0.0.1".to_string(),
             run_on_startup: false,
@@ -2410,6 +2436,7 @@ fn main() {
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -2420,6 +2447,8 @@ fn main() {
                 .build(),
         )
         .manage(CoreDownloadState::default())
+        .manage(crate::menubar_state())
+        .manage(updates::UpdateState::default())
         .manage(AppUpdateState::default())
         .manage(CoreProcessState::new(gui_config.start_core_on_launch))
         .manage(DeepSeekHarnessProcessState::default())
@@ -2457,6 +2486,9 @@ fn main() {
 
     #[cfg(target_os = "macos")]
     let app = app.on_window_event(|window, event| {
+        if window.label() == menubar::TRAY_PANEL_LABEL {
+            menubar::on_tray_panel_event(window, event);
+        }
         if window.label() == "main" {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
@@ -2483,6 +2515,21 @@ fn main() {
 
     let app = app
         .setup(move |app| {
+            // The bundle identifier names the data dir used for the agent sandbox; a Dev
+            // binary packaged with Prod's config would write into Prod's folder.
+            if app.config().identifier != APP_IDENTIFIER {
+                return Err(format!(
+                    "Bundle identifier {} does not match this {} build ({APP_IDENTIFIER})",
+                    app.config().identifier,
+                    if IS_DEV_BUILD { "Dev" } else { "Prod" },
+                )
+                .into());
+            }
+            if IS_DEV_BUILD {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_title("CPA Desk Dev");
+                }
+            }
             load_agent_config_target(app.handle());
             if let Err(error) = network_proxy::refresh(app.state::<GuiConfigState>().inner()) {
                 eprintln!("Failed to read startup proxy settings: {error}");
@@ -2529,6 +2576,7 @@ fn main() {
 
             network_proxy::start_monitor(app.handle().clone());
             start_codex_model_catalog_sync(app.handle().clone());
+            updates::start_update_checks(app.handle().clone());
 
             let usage_app = app.handle().clone();
             tauri::async_runtime::spawn_blocking(move || {
@@ -2652,6 +2700,18 @@ fn main() {
             set_agent_config_live,
             read_session_activity,
             get_migration_status,
+            get_build_channel,
+            updates::get_update_status,
+            updates::check_for_update,
+            updates::install_update_and_restart,
+            #[cfg(target_os = "macos")]
+            menubar::set_tray_gauge,
+            #[cfg(target_os = "macos")]
+            menubar::resize_tray_panel,
+            #[cfg(target_os = "macos")]
+            menubar::open_main_window,
+            #[cfg(target_os = "macos")]
+            menubar::quit_app,
             run_production_migration,
             restart_after_migration,
             update_codex_model_catalog,

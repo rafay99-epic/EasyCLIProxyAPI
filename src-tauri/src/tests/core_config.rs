@@ -3,7 +3,8 @@ use super::*;
 
 #[test]
 fn legacy_string_api_keys_keep_custom_keys_without_special_protection() {
-    let legacy = "port = 8317\nallow-lan = false\nrun-on-startup = false\nauth-dir = \"/tmp/oauth\"\napi-keys = [\"123456\", \"custom-key\"]\nmanagement-secret-key = \"123456\"\nplugins-enabled = false\nrouting-strategy = \"round-robin\"\n";
+    // Any port but Prod's: a Dev build rewrites 8317 by design.
+    let legacy = "port = 8318\nallow-lan = false\nrun-on-startup = false\nauth-dir = \"/tmp/oauth\"\napi-keys = [\"123456\", \"custom-key\"]\nmanagement-secret-key = \"123456\"\nplugins-enabled = false\nrouting-strategy = \"round-robin\"\n";
     let mut config = toml::from_str::<GuiConfigFile>(legacy).unwrap();
 
     assert!(!sanitize_gui_config(&mut config).unwrap());
@@ -1101,7 +1102,8 @@ fn runtime_network_patch_preserves_comments_and_other_settings() {
 #[test]
 fn runtime_network_patch_skips_unchanged_yaml() {
     let config = GuiConfigFile::default();
-    let input = "host: 127.0.0.1\nport: 8327\n";
+    let input = format!("host: 127.0.0.1\nport: {}\n", crate::DEFAULT_CORE_PORT);
+    let input = input.as_str();
 
     assert!(patch_core_network_yaml(input, &config).unwrap().is_none());
 }
@@ -2072,7 +2074,7 @@ fn startup_merge_without_current_config_uses_gui_defaults() {
         document["host"],
         serde_norway::Value::String("127.0.0.1".to_string())
     );
-    assert_eq!(document["port"], serde_norway::to_value(8327_u16).unwrap());
+    assert_eq!(document["port"], serde_norway::to_value(crate::DEFAULT_CORE_PORT).unwrap());
     assert_eq!(document["debug"], serde_norway::Value::Bool(false));
     assert_eq!(document["api-keys"][0], DEFAULT_API_KEY, "{merged}");
     assert_eq!(document["plugins"]["enabled"], false);

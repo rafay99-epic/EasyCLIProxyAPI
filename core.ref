@@ -1,0 +1,5 @@
+# Patched proxy core shipped inside CPA Desk releases. Bump `version` whenever `ref`
+# changes: the app only installs a bundled core that is newer than the installed one.
+repo=rafay99-epic/CLIProxyAPI
+ref=e2a0cfc049af10e88d390426f1b62014a334ea02
+version=8.0.6-rafay.1

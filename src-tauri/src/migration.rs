@@ -194,6 +194,18 @@ pub(crate) fn migrate_between(production: &Path, desk: &Path, stamp: &str) -> Re
 
 #[tauri::command]
 pub(crate) fn get_migration_status() -> Result<MigrationStatus, String> {
+    if IS_DEV_BUILD {
+        // Never offered in Dev: Dev must not hold Prod's account tokens.
+        return Ok(MigrationStatus {
+            available: false,
+            production_dir: String::new(),
+            production_processes: Vec::new(),
+            migrated_at: None,
+            credentials: 0,
+            usage_bytes: 0,
+            port: None,
+        });
+    }
     Ok(migration_status_between(&production_dir()?, &core_base_dir()?, running_production_processes()?))
 }
 
@@ -201,6 +213,9 @@ pub(crate) fn get_migration_status() -> Result<MigrationStatus, String> {
 /// the restart to `restart_after_migration` so the UI can confirm first.
 #[tauri::command]
 pub(crate) async fn run_production_migration(app: tauri::AppHandle) -> Result<MigrationReport, String> {
+    if IS_DEV_BUILD {
+        return Err("The production import is disabled in CPA Desk Dev.".to_string());
+    }
     let running = running_production_processes()?;
     if !running.is_empty() {
         return Err(format!("Quit EasyCLIProxyAPI first. Still running: {}", running.join(", ")));

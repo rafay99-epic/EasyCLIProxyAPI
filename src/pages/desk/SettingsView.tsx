@@ -6,7 +6,9 @@ import { useDeskNav, type SettingsSection } from '../../deskNav';
 import { updateRoutingSettings, useRoutingState } from '../../services/routingController';
 import { ConfigPanelPage } from '../ConfigPanel';
 import { KernelPage } from '../Kernel';
-import { VersionManagementPage } from '../VersionManagementPage';
+import { useCoreRuntime } from '../../coreRuntime';
+import { updateSummary, useDeskUpdate } from '../../services/deskUpdate';
+import { useBuildChannel } from '../../services/deskSnapshot';
 
 const groups: { label: string; items: { id: SettingsSection; label: string }[] }[] = [
   { label: 'Proxy', items: [
@@ -71,6 +73,49 @@ function RoutingRows() {
   );
 }
 
+/** CPA Desk updates from GitHub Releases, plus the core that ships inside each release. */
+function VersionsRows() {
+  const { status, check, install, installError, ready } = useDeskUpdate();
+  const { status: core } = useCoreRuntime();
+  const channel = useBuildChannel();
+  const busy = status?.phase === 'checking' || status?.phase === 'downloading';
+  return (
+    <>
+      <div className="d-srow">
+        <span className="d-k">
+          <b>CPA Desk {status?.currentVersion ?? ''}{channel === 'dev' ? ' Dev' : ''}</b>
+          <span className={status?.phase === 'error' ? 'd-bad' : undefined}>{updateSummary(status)}</span>
+        </span>
+        <span style={{ display: 'flex', gap: 8 }}>
+          <button type="button" className="d-btn" disabled={busy} onClick={() => void check()}>
+            {busy ? 'Checking' : 'Check now'}
+          </button>
+          {ready ? <button type="button" className="d-btn d-primary" onClick={() => void install()}>Restart to update</button> : null}
+        </span>
+      </div>
+      {installError ? <div className="d-notice d-bad" style={{ marginTop: 12 }}>{installError}</div> : null}
+      {status?.notes && status.version ? (
+        <div className="d-srow" style={{ display: 'block' }}>
+          <span className="d-k"><b>What's new in {status.version}</b></span>
+          <pre className="d-notes">{status.notes}</pre>
+        </div>
+      ) : null}
+      <div className="d-srow">
+        <span className="d-k">
+          <b>Proxy core {core?.currentVersion ?? ''}</b>
+          <span>Patched build. It updates together with CPA Desk, never from upstream.</span>
+        </span>
+        <span />
+      </div>
+      <p className="d-help" style={{ marginTop: 12 }}>
+        {channel === 'dev'
+          ? 'Dev checks the dev-latest pre-release only when you press Check now.'
+          : 'Checks GitHub a minute after launch and every 6 hours. Updates download in the background and install when you restart.'}
+      </p>
+    </>
+  );
+}
+
 function SectionBody({ section }: { section: SettingsSection }) {
   switch (section) {
     case 'routing':
@@ -84,7 +129,7 @@ function SectionBody({ section }: { section: SettingsSection }) {
     case 'core':
       return <div className="d-embed"><KernelPage view="home" /></div>;
     case 'versions':
-      return <div className="d-embed"><VersionManagementPage /></div>;
+      return <VersionsRows />;
     default:
       return <div className="d-embed"><ConfigPanelPage section={section} /></div>;
   }
