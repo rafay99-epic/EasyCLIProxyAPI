@@ -1,169 +1,129 @@
-<p align="center">
-  <strong>English</strong> |
-  <a href="README.zh-CN.md">简体中文</a> |
-  <a href="README.ja.md">日本語</a>
-</p>
+# CPA Desk
 
-<p align="center">
-  <img src="src/assets/logo.jpg" width="112" alt="EasyCLIProxyAPI Logo">
-</p>
+A personal fork of [EasyCLIProxyAPI](https://github.com/router-for-me/EasyCLIProxyAPI), the
+desktop console for CLIProxyAPI. It runs several Claude subscriptions behind one local endpoint
+and tries hard to keep each session on the same account, because Anthropic prompt caches are per
+account and every move rebuilds the cache.
 
-<h1 align="center">EasyCLIProxyAPI</h1>
+It ships a patched proxy core from
+[rafay99-epic/CLIProxyAPI](https://github.com/rafay99-epic/CLIProxyAPI).
 
-<p align="center">
-  A portable desktop console for CLIProxyAPI.<br>
-  Our goal is to make tokens free—as in freedom.
-</p>
+| | |
+| --- | --- |
+| App base | upstream EasyCLIProxyAPI `90364e9` (v0.3.12) |
+| Core | CLIProxyAPI v8.0.6 + fork patches (`8.0.6-rafay.1`, pinned in `core.ref`) |
+| Platform | macOS, Apple silicon |
+| Bundle id | `com.rafay.cpadesk` (installs next to upstream, own data dir) |
 
-## Overview
+![Overview](screenshots/overview.png)
 
-EasyCLIProxyAPI is a graphical desktop management tool built on
-[CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI). It brings core lifecycle management,
-OAuth authorization, API provider aggregation, protocol conversion, credential management,
-quota inspection, usage records, model aliases, and agent client configuration into one interface.
+## What changed
 
-The application is built with Tauri, React, and Rust. It can carry a matching CLIProxyAPI core
-archive, making first-time setup and offline installation easier.
+### Routing and sessions
 
-## Sponsor
+- **Reset-first routing.** Claude accounts are ordered by the soonest weekly reset (Automatic)
+  or by a dragged order (Manual). Accounts at 85% of their 5 hour limit or 95% of their week are
+  skipped.
+- **Warm sessions stay put.** Reordering only changes where new sessions go. A session already
+  on an account keeps it.
+- **Patched core.** Network errors, 5xx and 529 overloaded are retried on the same account
+  before the session moves, and config reloads keep session bindings. Details in the
+  [core fork](https://github.com/rafay99-epic/CLIProxyAPI).
+- **New defaults.** Fill-first routing, session affinity on with a 70 minute TTL, and
+  `save-cooldown-status: true`.
+- **Session activity.** Warm sessions and account moves (with the reason) are read from the
+  core log and shown in the app.
 
-[![https://go.apimart.ai/gh-easycliproxyapi](./assets/apimart-en.png)](https://go.apimart.ai/gh-easycliproxyapi)
+### Limits
 
-Thanks to APIMart for sponsoring this project!
+- 5 hour, week and Fable week usage per account, with reset times, from the usage endpoint and
+  response headers.
 
-APIMart is a low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee — [sign up here](https://go.apimart.ai/gh-easycliproxyapi) to get started.
+### Menu bar
 
-## Feature Tour
+- Live gauge glyph that fills with the serving account's weekly usage and shows when the core
+  is stopped.
+- Popover with every account's 5 hour and week limits, warm sessions, launch at login, open,
+  copy URL, restart core and quit.
+- The Dock icon is hidden while the window is closed.
 
-### Home dashboard and local API endpoints
+### Safer client setup
 
-![Home dashboard and local API endpoints](docs/screenshots/en/1.png)
+- Agent configs (Claude Code, Codex and the rest) are written to a sandbox home inside CPA Desk
+  until you switch on real configs. Your `~/.claude` and `~/.codex` stay untouched by default.
+- One-step import from EasyCLIProxyAPI: accounts, GUI and core config, usage history and the
+  Codex model catalog. It refuses while the old app or core is running, stages the copy before
+  swapping it in, backs up CPA Desk's old data and only reads the source files.
 
-The Home page provides a quick overview of the local proxy runtime and ready-to-use API endpoints:
+### Updates and releases
 
-- Start, stop, restart, and refresh the CLIProxyAPI core.
-- View installation state, runtime state, process ID, and listening port.
-- Copy ready-to-use OpenAI, Claude, and Gemini-compatible API endpoints.
-- Check local connectivity and the application/core version at a glance.
+- In-app updates from this fork's GitHub Releases: checked at launch and every 6 hours,
+  downloaded and signature-checked in the background, installed when you click Restart.
+- The core updates only with CPA Desk releases. Upstream core downloads are disabled.
+- Every push to `main` that touches the app builds the patched core and the app, signs the
+  update and publishes the next version with notes written from the commits.
+- A separate Dev build (`com.rafay.cpadesk.dev`, port 8337) with the sandbox locked on, for
+  testing without touching the installed app.
 
-Core installation, version comparison, and offline installation are available from the
-**Version Management** page. You can switch between official GitHub, GitCode, and GitHub
-mirror proxies or add custom HTTPS mirror prefixes; application and core updates prefer the selected
-channel and fall back automatically.
+## UI changes
 
-Application and core updates are each checked once in the background at startup and automatically
-whenever you enter **Version Management**. Their respective **Check for Updates** buttons remain
-available for manual checks. Re-rendering the page does not trigger another check. Changing download
-sources does not trigger a check, and reopening the page preserves the saved source. Checks do not
-automatically download or install updates.
+The whole app was reskinned and the main pages were rebuilt.
 
-### OAuth account authorization
+- **Look.** True black background, white text, hairline borders, no card chrome. Gauge app icon.
+- **Shell.** Collapsible sidebar with Overview, Accounts, Clients, Usage and Settings, a
+  `⌘K` command palette, and the core status in the footer.
+- **Window.** The gray macOS title bar is gone. The app runs to the top edge, the window
+  controls sit inside the sidebar, and the top strip stays draggable.
+- **Overview (new).** Which account takes new sessions, 5 hour, week and Fable week meters with
+  reset times, the routing order with an Automatic or Manual toggle, and a session activity feed.
+- **Accounts (new).** One table for subscriptions and API keys with plan, 5 hour and week usage
+  and status. Tabs for Subscriptions, API keys and Model exclusions, and a detail sheet per
+  account.
+- **Clients (new).** Base URL, OpenAI-compatible URL and API key in one copy strip. Per-client
+  model mapping, a sandbox indicator, and Setup, Backups and Sessions tabs.
+- **Settings (new).** Rebuilt in the new layout, including Versions and Restart for updates.
+- **Usage and the other upstream pages** keep their behavior and are restyled to match.
 
-![OAuth account authorization](docs/screenshots/en/2.png)
+![Accounts](screenshots/accounts.png)
 
-The OAuth page centralizes browser-based authorization for supported providers:
+![Clients](screenshots/clients.png)
 
-- Codex OAuth
-- Claude OAuth
-- Antigravity OAuth
-- Kimi OAuth
-- xAI OAuth
+## Security
 
-EasyCLIProxyAPI opens the authorization page in the browser and supports completing the callback
-flow when an automatic redirect is unavailable.
+Security follows upstream. This fork has no separate security policy.
 
-### API provider aggregation
+- Security fixes from upstream
+  [EasyCLIProxyAPI](https://github.com/router-for-me/EasyCLIProxyAPI) and
+  [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) are always ported into this fork
+  by hand. Other upstream changes are taken only when wanted.
+- Report vulnerabilities in upstream code to the upstream project. Issues are turned off on
+  this fork.
+- Updates are signed with this fork's own key. The public key is in `src-tauri/tauri.conf.json`,
+  and installed copies reject anything not signed with it.
 
-![API provider aggregation](docs/screenshots/en/3.png)
+## Install
 
-The provider workspace manages upstream API credentials and endpoints by protocol or provider:
+Download the latest release from
+[Releases](https://github.com/rafay99-epic/EasyCLIProxyAPI/releases/latest). Versions from 1.0.0
+on update themselves.
 
-- Codex
-- OpenAI-compatible providers
-- DeepSeek
-- Claude
-- Gemini
+## Build
 
-You can add multiple connections, search existing entries, refresh provider state, and use them
-through the unified local CLIProxyAPI endpoint. Requests and responses can be converted between
-supported OpenAI, Claude, Gemini, and compatible formats.
+```sh
+./build-desk.sh dev     # build the core from ../cpa-core, then build and install CPA Desk Dev
+./build-desk.sh prod    # build the release app locally (not installed)
+```
 
-### Usage history and token analytics
+Maintainer notes (Prod and Dev builds, porting upstream changes, release signing) are in
+[FORK.md](FORK.md).
 
-![Usage history and token analytics](docs/screenshots/en/4.png)
+## Upstream docs
 
-The Usage page helps you understand local request activity and token consumption:
+Everything not listed above (OAuth providers, API providers, protocol conversion, usage
+analytics, agent clients) works as upstream documents it in the
+[EasyCLIProxyAPI README](https://github.com/router-for-me/EasyCLIProxyAPI#readme).
+[简体中文](README.zh-CN.md) and [日本語](README.ja.md) translations describe upstream.
 
-- Review request totals, token counts, success rate, throughput, cache hit rate, and estimated cost.
-- Filter usage by time, model, provider, source, key, and result.
-- Inspect request/token trends and input, output, reasoning, and cache usage.
-- Browse request details, analysis views, and price statistics.
-- Collect through CPA's real-time usage subscription with a durable local inbox and automatic HTTP fallback.
-- Upgrade legacy usage databases once at startup after saving a backup under `usage-records/backups`.
+## License
 
-### Agent client configuration
-
-![Agent client configuration](docs/screenshots/en/5.png)
-
-The Agents page detects installed desktop and CLI clients and helps connect them to the local
-proxy. Supported clients include:
-
-- Claude Code
-- Claude Desktop
-- Codex
-- OpenCode
-- OpenClaw
-- Hermes Agent
-- Pi (with the CLIProxyAPI provider extension)
-- ZCode
-- WorkBuddy / WorkBuddy AI
-- Antigravity CLI
-- Kimi Code
-- Grok Build
-
-For supported clients, the application can synchronize the available model catalog, select a
-default model, back up the original configuration before applying managed settings, and restore the
-previous configuration.
-
-Antigravity CLI connects through CPA's Gemini-compatible API. Launch the CLI from CPA to supply its endpoint and API key for that process. Running `agy` directly requires setting those environment variables yourself.
-
-## Additional Capabilities
-
-- Manage core settings, API keys, remote management credentials, and routing strategy.
-- Create client-visible model aliases and map them to provider models and reasoning levels.
-- Upload, download, inspect, and manage authentication files.
-- Review provider quotas and account availability.
-- Keep the application available from the macOS menu bar or Windows system tray.
-
-## Quick Start
-
-1. Download the package for your operating system from
-   [GitHub Releases](https://github.com/router-for-me/EasyCLIProxyAPI/releases/latest).
-2. Extract the Windows or Linux archive, or open the macOS DMG.
-3. Launch EasyCLIProxyAPI.
-4. Open **Version Management** and install the bundled or latest CLIProxyAPI core.
-5. Return to **Home**, start the core, then copy the required local endpoint or configure an OAuth/API provider.
-
-## Upgrading
-
-Every Windows release publishes both the complete ZIP and the legacy `update` ZIP. This keeps in-app updates available to older clients that have not migrated yet, while newer clients use the complete package so the bundled core can be updated too.
-
-Current Windows, Linux, and macOS release packages support in-app automatic updates. Linux replaces the portable application files while preserving runtime data, and macOS replaces the signed application bundle. Each platform waits for the new version to confirm a successful launch and rolls back automatically if startup fails. The installation directory must be writable by the current user.
-
-Existing Linux and macOS installations need one manual upgrade to a release that includes the cross-platform auto-update marker. In-app updates are available after that release has been launched once.
-
-If you are running v0.2.5 or earlier, perform one manual migration: exit EasyCLIProxyAPI, download the latest complete Windows ZIP for your architecture, then copy the contents of its top-level directory over the existing installation directory. Do not delete the existing directory first; user data such as `config.toml`, `oauth`, and `cpa-core/config.yaml` will remain in place. After launching the new version, later releases can use in-app automatic updates.
-
-## Supported Platforms
-
-GitHub Actions builds the following release packages:
-
-| Operating System | Architecture | Package |
-| --- | --- | --- |
-| Windows | amd64, aarch64 | ZIP |
-| macOS | amd64, aarch64 | DMG |
-| Linux | amd64, aarch64 | TAR.GZ |
-
-## Related Project
-
-- [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) — the proxy core managed by this application.
+MIT, see [LICENSE](LICENSE). Original work by Router-For.ME.
