@@ -11,7 +11,7 @@ It ships a patched proxy core from
 | | |
 | --- | --- |
 | App base | upstream EasyCLIProxyAPI `90364e9` (v0.3.12) |
-| Core | CLIProxyAPI v8.0.6 + fork patches (`8.0.6-rafay.1`, pinned in `core.ref`) |
+| Core | CLIProxyAPI v8.0.6 + fork patches + 2 upstream fixes (`8.0.6-rafay.2`, pinned in `core.ref`) |
 | Platform | macOS, Apple silicon |
 | Bundle id | `com.rafay.cpadesk` (installs next to upstream, own data dir) |
 
